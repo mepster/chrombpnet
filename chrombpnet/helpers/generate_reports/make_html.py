@@ -159,8 +159,7 @@ def qc_report(fpx,prefix,data_type):
 	use a different pre-trained bias model. For more intuition on choosing the correct pre-trained model or retraining your bias model refer to \
 	<a href=\"https://github.com/kundajelab/chrombpnet/wiki/FAQ\">FAQ</a> section in wiki. \
 	<br> \
-	<br> \
-	<b> What to do if you find an obvious bias motif in the list? </b> <br>" 
+	<br>"
 
 	#tf_text_counts = "TFModisco on Counts head. cwm_fwd, cwm_rev should have only TF motifs.  The motifs top matches in TOMTOM are shown (match_0, match_1, match_2)"
 
