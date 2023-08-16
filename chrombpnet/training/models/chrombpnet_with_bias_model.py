@@ -71,7 +71,7 @@ def bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len):
     assert (int_shape(prof_out_precrop)[1] % 2 == 0) # Necessary for symmetric cropping
 
     prof = Cropping1D(cropsize,
-                name='wo_bias_bpnet_logitt_before_flatten')(prof_out_precrop)
+                name='wo_bias_bpnet_logits_before_flatten')(prof_out_precrop)
     
     profile_out = Flatten(name="wo_bias_bpnet_logits_profile_predictions")(prof)
 
