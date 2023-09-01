@@ -55,7 +55,6 @@ def read_parser():
         	required_train.add_argument("-p", "--peaks", type=str, required=True, help="10 column bed file of peaks. Sequences and labels will be extracted centered at start (2nd col) + summit (10th col).")
         	required_train.add_argument("-n", "--nonpeaks", type=str, required=True, help="10 column bed file of non-peak regions, centered at summit (10th column)")
         	required_train.add_argument("-fl", "--chr-fold-path", type=str, required=True, help="Fold information - dictionary with test,valid and train keys and values with corresponding chromosomes")
- 
         	optional_train.add_argument("-oth", "--outlier-threshold", type=float, default=0.9999, help="threshold to use to filter outlies")
         	#optional_train.add_argument('-ps', '--plus-shift', type=int, default=None, help="Plus strand shift applied to reads. Estimated if not specified")
         	#optional_train.add_argument('-ms', '--minus-shift', type=int, default=None, help="Minus strand shift applied to reads. Estimated if not specified")
@@ -72,6 +71,7 @@ def read_parser():
         	optional_train.add_argument("-a","--architecture-from-file",type=str,required=False, default=None, help="Model to use for training")
         	optional_train.add_argument("-fp","--file-prefix",type=str,required=False, default=None, help="File prefix for output to use. All the files will be prefixed with this string if provided.")
         	optional_train.add_argument('-hp', '--html-prefix', required=False, default="./", help="The html prefix to use for the html file output.")
+        	optional_train.add_argument('--multiGPU', default=False, action='store_true')
 
         	return required_train, optional_train
 
