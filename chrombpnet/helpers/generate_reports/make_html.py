@@ -126,15 +126,14 @@ def qc_report(fpx,prefix,data_type):
 	## Marginal footprinting on enzyme bias
 	
 	marg_hed = 'ChromBPNet marginal footprints on tn5 motifs'
-	marg_text = 'The marginal footprints are the response of the ChromBPNet no bias model to the hetergenous bias motifs. \
-	If the bias correction is complete the max of the profiles below should be below 0.003 on all the \
-	bias motifs. '
+	marg_text = 'The marginal footprints are the response of the ChromBPNet no bias model to the heterogeneous bias motifs. \
+	If the bias correction is complete, the max of the profile for EACH of the bias motifs below should be below 0.003. '
 	data = open(os.path.join(prefix,"evaluation/{}chrombpnet_nobias_max_bias_response.txt".format(fpx))).read()
 	vals = data.split("_")
-	marg_text1 = "For your convenience we calculate here the average of the max of the profiles: "+vals[1]+" And the model according to this is <b>"+vals[0]+"</b> \
+	marg_text1 = "For your convenience we calculate here the max of the maxes of each profile: "+vals[1]+" And the model according to this is <b>"+vals[0]+"</b>. \
 	<br> \
 	<br> \
-	<b> What to do if your model looks uncorrected (i.e max of profiles is greater than 0.003)? </b> <br> \
+	<b> What to do if your model looks uncorrected (i.e., max of profiles is greater than 0.003)? </b> <br> \
 	Look at the motifs below captured by TFModisco and you should be able to see motifs that closely look like the bias motifs showing incomplete bias correction. \
 	This indicates that your bias model was not completely capturing the response of the bias. We recommend that you \
 	use a different pre-trained bias model. For more intuition on choosing the correct pre-trained model or retraining your bias model refer to \
@@ -159,8 +158,7 @@ def qc_report(fpx,prefix,data_type):
 	use a different pre-trained bias model. For more intuition on choosing the correct pre-trained model or retraining your bias model refer to \
 	<a href=\"https://github.com/kundajelab/chrombpnet/wiki/FAQ\">FAQ</a> section in wiki. \
 	<br> \
-	<br> \
-	<b> What to do if you find an obvious bias motif in the list? </b> <br>" 
+	<br>"
 
 	#tf_text_counts = "TFModisco on Counts head. cwm_fwd, cwm_rev should have only TF motifs.  The motifs top matches in TOMTOM are shown (match_0, match_1, match_2)"
 

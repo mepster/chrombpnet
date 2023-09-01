@@ -129,7 +129,7 @@ def main(args):
 
 		# plot footprints of center 200bp
 		if ("tn5" in motif.lower()) or ("dnase" in motif.lower()):
-				avg_response_at_tn5.append(np.round(np.max(motif_footprint),3))
+				avg_response_at_tn5.append(np.round(np.max(motif_footprint),4))
 		plt.figure()
 		plt.plot(range(200),motif_footprint[outputlen//2-100:outputlen//2+100])
 		if args.ylim is not None: 
@@ -141,13 +141,14 @@ def main(args):
 		plt.savefig(args.output_prefix+".{}.footprint.png".format(motif))
 
 	if len(avg_response_at_tn5) > 0:
-		if np.all(np.array(avg_response_at_tn5) < 0.003):
+		# note, this expression requires that the max (not the mean) of the max of each profile be < 0.003
+		if np.max(avg_response_at_tn5) < 0.003:
 			ofile = open("{}_max_bias_response.txt".format(args.output_prefix), "w")
-			ofile.write("corrected_"+str(round(np.mean(avg_response_at_tn5),3))+"_"+"/".join(list(map(str,avg_response_at_tn5))))
+			ofile.write("corrected_"+str(np.round(np.max(avg_response_at_tn5),4))+"_"+"/".join(list(map(str,avg_response_at_tn5))))
 			ofile.close()
 		else:
 			ofile = open("{}_max_bias_response.txt".format(args.output_prefix), "w")
-			ofile.write("uncorrected_"+str(round(np.mean(avg_response_at_tn5),3))+"_"+"/".join(list(map(str,avg_response_at_tn5))))
+			ofile.write("uncorrected_"+str(np.round(np.max(avg_response_at_tn5),4))+"_"+"/".join(list(map(str,avg_response_at_tn5))))
 			ofile.close()
 
 	print("Saving marginal footprints")
