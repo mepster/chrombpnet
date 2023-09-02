@@ -27,11 +27,12 @@ def chrombpnet_train_pipeline(args):
 	if 1:
 		import shutil
 		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
+		dest = args.output_dir + f"auxiliary/{fpx}data_unstranded.bw"
 		if os.path.exists(cached_bw_path):
 			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
 			shutil.copyfile(cached_bw_path, dest)
 		else:
+			print(f"generating new BigWig file {dest}")
 			reads_to_bigwig.main(args)
 			print(f"copying newly generated BigWig file {dest} to cache {cached_bw_path}")
 			shutil.copyfile(dest, cached_bw_path) # copy the bigwig file back out to cwd
@@ -299,11 +300,12 @@ def train_bias_pipeline(args):
 	if 1:
 		import shutil
 		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
+		dest = args.output_dir + f"auxiliary/{fpx}data_unstranded.bw"
 		if os.path.exists(cached_bw_path):
 			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
 			shutil.copyfile(cached_bw_path, dest)
 		else:
+			print(f"generating new BigWig file {dest}")
 			reads_to_bigwig.main(args)
 			print(f"copying newly generated BigWig file {dest} to cache {cached_bw_path}")
 			shutil.copyfile(dest, cached_bw_path) # copy the bigwig file back out to cwd
@@ -392,14 +394,16 @@ def train_bias_pipeline(args):
 
 	# modisco-lite pipeline
 	
-	modisco_command = "modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)))
-	os.system(modisco_command)
-	modisco_command = "modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file)
-	os.system(modisco_command)
-	modisco_command = "modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)))
-	os.system(modisco_command)
-	modisco_command = "modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file)
-	os.system(modisco_command)
+	# modisco-lite pipeline
+	cmds = []
+	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx))))
+	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx))))
+	run_parallel_commands2(cmds)
+
+	cmds = []
+	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file))
+	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file))
+	run_parallel_commands2(cmds)
 	
 	import chrombpnet.evaluation.modisco.convert_html_to_pdf as convert_html_to_pdf
 	convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_counts/motifs.html"),os.path.join(args.output_dir,"evaluation/{}bias_counts.pdf".format(fpx)))
