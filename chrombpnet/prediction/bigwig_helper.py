@@ -21,7 +21,7 @@ def get_regions(regions_file, seqlen):
 
     return regions
 
-def write_bigwig(data, regions, gs, bw_out, debug_chr=None, use_tqdm=False, outstats_file=None):
+def write_bigwig(data, regions, gs, bw_out, use_tqdm=False, outstats_file=None):
     # regions may overlap but as we go in sorted order, at a given position,
     # we will pick the value from the interval whose summit is closest to 
     # current position
@@ -40,51 +40,23 @@ def write_bigwig(data, regions, gs, bw_out, debug_chr=None, use_tqdm=False, outs
     cur_chr = ""
     cur_end = 0
 
-    iterator = range(len(order_of_regs))
+    iterator = range(len(regions))
     if use_tqdm:
         from tqdm import tqdm
         iterator = tqdm(iterator)
 
     for itr in iterator:
-        # subset to chromosome (debugging)
-        if debug_chr and regions[i][0]!=debug_chr:
-            continue
-
         i = order_of_regs[itr]
-        i_chr, i_start, i_end, i_mid = regions[i]
-    
-        if i_chr != cur_chr: 
-            cur_chr = i_chr
-            cur_end = 0
-    
-        # bring current end to at least start of current region
-        if cur_end < i_start:
-            cur_end = i_start
-    
-        assert(regions[i][2]>=cur_end)
-    
-        # figure out where to stop for this region, get next region
-        # which may partially overlap with this one
-        next_end = i_end
-    
-        if itr+1 != len(order_of_regs):
-            n = order_of_regs[itr+1]
-            next_chr, next_start, _, next_mid = regions[n]
-       
-            if next_chr == i_chr and next_start < i_end:
-                # if next region overlaps with this, end between their midpoints
-                next_end = (i_mid+next_mid)//2
-       
-        vals = data[i][cur_end - i_start:next_end - i_start]
+        i_chr, i_start, i_end = regions[i]
+
+        vals = data[i]
 
         bw.addEntries([i_chr]*(next_end-cur_end), 
-                       list(range(cur_end,next_end)), 
+                       list(range(cur_end,next_end)),
                        ends = list(range(cur_end+1, next_end+1)), 
                        values=[float(x) for x in vals])
     
         all_entries.append(vals)
-        
-        cur_end = next_end
 
     bw.close()
 

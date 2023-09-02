@@ -55,6 +55,15 @@ def main():
 
 		predict_to_bigwig.main(args)
 
+	elif args.cmd == "pred_custom":
+
+		# assert (args.bias_model is None) + (args.chrombpnet_model is None) + (
+		# 			args.chrombpnet_model_nb is None) < 3, "No input model provided!"
+		import chrombpnet.prediction.predict_custom as predict_custom
+
+		predict_custom.main(args)
+
+
 	elif args.cmd == "contribs_bw":
 	
 		import chrombpnet.evaluation.interpret.interpret as interpret
