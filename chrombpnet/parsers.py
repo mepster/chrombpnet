@@ -291,7 +291,8 @@ def read_parser():
         optional_pc = pred_custom_parser.add_argument_group('optional arguments')
 
         required_pc.add_argument("-cmb", "--chrombpnet-model-nb", type=str, required=False, help="Path to chrombpnet no bias model h5")
-        required_pc.add_argument("-ibed", "--input-bed-file", type=str, required=True, help="11 column bed file of sequences for prediction")
+        required_pc.add_argument("-ibed", "--input-bed-file", type=str, required=True, help="bed file of sequences for prediction. Columns are defined by --schema")
+        required_pc.add_argument("-s", "--schema", type=str, required=True, help="Schema to read input bed file. 'SINGLEVAR' or 'ALLVAR"'')
         required_pc.add_argument("-o", "--output-prefix", type=str, required=True, help="Output prefix for predictions")
         optional_pc.add_argument("-os", "--output-prefix-stats", type=str, default=None, required=False, help="Output stats on bigwig")
         optional_pc.add_argument("-bs", "--batch-size", type=int, default=64, help="batch size to use for prediction")

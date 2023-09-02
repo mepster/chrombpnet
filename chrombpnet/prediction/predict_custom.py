@@ -9,8 +9,8 @@ import chrombpnet.training.utils.losses as losses
 import chrombpnet.training.utils.one_hot as one_hot
 import h5py
 
-ALLVAR_SCHEMA = ["chr", "start", "end", "species", "peak_name", "6", "7", "8", "9", "10", "sequence"]
-SINGLEVAR_SCHEMA = ["chr_hum", "start_hum", "end_hum", "SNP_hum_chimp", "species", "chr_chimp", "start_chimp", "end_chimp", "peak_name", "10", "11", "12", "13", "14", "sequence"]
+schemas = {'ALLVAR': ["chr", "start", "end", "species", "peak_name", "6", "7", "8", "9", "10", "sequence"],
+           'SINGLEVAR': ["chr_hum", "start_hum", "end_hum", "SNP_hum_chimp", "species", "chr_chimp", "start_chimp", "end_chimp", "peak_name", "10", "11", "12", "13", "14", "sequence"]}
 
 def write_predictions_h5py(output_prefix, profile, logcts, names):
     # open h5 file for writing predictions
@@ -63,7 +63,8 @@ def main(args):
     strategy = get_strategy(args)
 
     # load data
-    regions_df = pd.read_csv(args.input_bed_file, sep='\t', names=ALLVAR_SCHEMA) # have to add an argument to choose the schema
+    schema = schemas[args.schema] # ALLVAR or SINGLEVAR
+    regions_df = pd.read_csv(args.input_bed_file, sep='\t', names=schema) # have to add an argument to choose the schema
     print(regions_df.head())
 
     seqs = regions_df['sequence']
@@ -96,8 +97,8 @@ def main(args):
     profile_probs_predictions = softmax(pred_logits_wo_bias)
     counts_sum_predictions = np.squeeze(pred_logcts_wo_bias)
 
-    # get the name for each row
-    fields = regions_df.iloc[:, 0:5]
+    # compose the name for each row - it's made of the first 5 fields joined with a "/"
+    fields = regions_df.iloc[:, 0:5] #0:5]
     print(fields)
     names = ["/".join(map(str,x)) for x in fields.values.tolist()]
 
