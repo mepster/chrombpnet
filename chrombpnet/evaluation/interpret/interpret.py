@@ -129,7 +129,20 @@ def main(args):
 
     regions_df[peaks_used].to_csv("{}.interpreted_regions.bed".format(args.output_prefix), header=False, sep='\t')
 
-    interpret(model, seqs, args.output_prefix, args.profile_or_counts)
+    if 1:
+        # run "profile" and "counts" in parallel
+        from multiprocessing import Process
+        os.environ["PYTHONUNBUFFERED"] = "1"
+        procs=[]
+        for item in args.profile_or_counts:
+            p = Process(target=interpret, args=(model, seqs, args.output_prefix, [item],))
+            procs.append(p)
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join()
+    else:
+        interpret(model, seqs, args.output_prefix, args.profile_or_counts)
 
 if __name__ == '__main__':
     # parse the command line arguments
