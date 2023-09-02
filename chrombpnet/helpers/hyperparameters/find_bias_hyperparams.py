@@ -79,7 +79,8 @@ def main(args):
     final_cnts = nonpeak_cnts
     counts_threshold = np.quantile(peak_cnts,0.01)*args.bias_threshold_factor
     assert(counts_threshold > 0) # counts threshold is 0 - all non peaks will be filtered!
-   
+
+    # keeps highest nonpeak counts below a fraction (bias_threshold_factor) of a certain minimum quantile (0.01) of the *peak* counts
     final_cnts = final_cnts[final_cnts < counts_threshold]
 
     print("Upper bound counts cut-off for bias model training: ", counts_threshold)
@@ -110,11 +111,19 @@ def main(args):
 
     # store the parameters being used  - in a TSV file
     file = open("{}bias_data_params.tsv".format(args.output_prefix),"w")
+    file.write("\t".join(["bias_threshold_factor", str(args.bias_threshold_factor)]))
+    file.write("\n")
+    file.write("\t".join(["counts_threshold", str(counts_threshold)]))
+    file.write("\n")
+    file.write("\t".join(["outlier_threshold", str(args.outlier_threshold)]))
+    file.write("\n")
     file.write("\t".join(["counts_sum_min_thresh", str(round(lower_thresh,2))]))
     file.write("\n")
     file.write("\t".join(["counts_sum_max_thresh", str(round(upper_thresh,2))]))
     file.write("\n")
-    file.write("\t".join(["trainings_pts_post_thresh", str(sum((final_cnts<upper_thresh) & (final_cnts>lower_thresh)))]))
+    file.write("\t".join(["nonpeaks_below_counts_threshold", str(final_cnts.shape[0])]))
+    file.write("\n")
+    file.write("\t".join(["nonpeaks_below_counts_threshold_and_inside_outliers", str(nonpeaks.shape[0])]))
     file.write("\n")
     file.close()
 

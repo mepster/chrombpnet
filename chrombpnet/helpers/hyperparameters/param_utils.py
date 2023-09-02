@@ -34,9 +34,9 @@ def filter_edge_regions(peaks_df, bw, width, peaks_bool):
         print("Number of peaks filtered because the input/output is on the edge: ", num_filtered)
         print("Number of peaks being used: ",peaks_df.shape[0])
     else:
-        print("Number of non peaks input: ",input_shape)
-        print("Number of non peaks filtered because the input/output is on the edge: ", num_filtered)
-        print("Number of non peaks being used: ",peaks_df.shape[0])
+        print("Number of nonpeaks input: ",input_shape)
+        print("Number of nonpeaks filtered because the input/output is on the edge: ", num_filtered)
+        print("Number of nonpeaks being used: ",peaks_df.shape[0])
     return peaks_df
 
 def get_seqs_cts(genome, bw, peaks_df, input_width=2114, output_width=1000):
