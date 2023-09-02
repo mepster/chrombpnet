@@ -27,7 +27,7 @@ def chrombpnet_train_pipeline(args):
 	if 1:
 		import shutil
 		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"auxiliary/{fpx}data_unstranded.bw"
+		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
 		if os.path.exists(cached_bw_path):
 			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
 			shutil.copyfile(cached_bw_path, dest)
@@ -300,7 +300,7 @@ def train_bias_pipeline(args):
 	if 1:
 		import shutil
 		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"auxiliary/{fpx}data_unstranded.bw"
+		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
 		if os.path.exists(cached_bw_path):
 			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
 			shutil.copyfile(cached_bw_path, dest)
