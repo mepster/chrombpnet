@@ -77,11 +77,11 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     prof = Cropping1D(cropsize,
                 name='logits_profile_predictions_preflatten')(prof_out_precrop)
 
+    profile_out = Flatten(name="logits_profile_predictions")(prof)
+
     # Branch 2. Counts prediction
     # Step 2.1 - Global average pooling along the "length", the result
     #            size is same as "filters" parameter to the BPNet function
-
-    profile_out = Flatten(name="logits_profile_predictions")(prof)
 
     gap_combined_conv = GlobalAvgPool1D(name='gap')(x) # acronym - gapcc
 
