@@ -129,7 +129,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
                         name="logcount_predictions")(concat_counts)
 
     # instantiate keras Model with inputs and outputs
-    model=Model(inputs=[inp],outputs=[profile_out, count_out])
+    model=Model(inputs=[inp],outputs=[profile_out, count_out], name="combined_model")
 
     model.compile(optimizer=Adam(learning_rate=args.learning_rate),
                     loss=[multinomial_nll,'mse'],
@@ -141,6 +141,6 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
 def save_model_without_bias(model, output_prefix):
     model_wo_bias = model.get_layer("model_wo_bias").output
     #counts_output_without_bias = model.get_layer("wo_bias_bpnet_logcount_predictions").output
-    model_without_bias = Model(inputs=model.get_layer("model_wo_bias").inputs,outputs=[model_wo_bias[0], model_wo_bias[1]])
+    model_without_bias = Model(inputs=model.get_layer("model_wo_bias").inputs,outputs=[model_wo_bias[0], model_wo_bias[1]], name="model_wo_bias")
     print('save model without bias') 
     model_without_bias.save(output_prefix+"_nobias.h5")

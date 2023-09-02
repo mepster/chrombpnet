@@ -74,6 +74,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     cropsize = int(int_shape(prof_out_precrop)[1]/2)-int(out_pred_len/2)
     assert cropsize>=0
     assert (int_shape(prof_out_precrop)[1] % 2 == 0) # Necessary for symmetric cropping
+
     prof = Cropping1D(cropsize,
                 name='logits_profile_predictions_preflatten')(prof_out_precrop)
 
@@ -89,7 +90,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     count_out = Dense(num_tasks, name="logcount_predictions")(gap_combined_conv)
 
     # instantiate keras Model with inputs and outputs
-    model=Model(inputs=[inp],outputs=[profile_out, count_out])
+    model=Model(inputs=[inp],outputs=[profile_out, count_out], name="bias_model")
 
     model.compile(optimizer=Adam(learning_rate=args.learning_rate),
                     loss=[multinomial_nll,'mse'],
