@@ -295,7 +295,7 @@ def read_parser():
         required_pc.add_argument("-s", "--schema", type=str, required=True, help="Schema to read input bed file. 'SINGLEVAR' or 'ALLVAR"'')
         required_pc.add_argument("-o", "--output-prefix", type=str, required=True, help="Output prefix for predictions")
         optional_pc.add_argument("-os", "--output-prefix-stats", type=str, default=None, required=False, help="Output stats on bigwig")
-        optional_pc.add_argument("-bs", "--batch-size", type=int, default=64, help="batch size to use for prediction")
+        optional_pc.add_argument("-bs", "--batch-size", type=int, default=128, help="batch size to use for prediction")
         optional_pc.add_argument("-t", "--tqdm", type=int,default=1, help="Use tqdm. If yes then you need to have it installed.")
         optional_pc.add_argument('--multiGPU', default=False, action='store_true')
 

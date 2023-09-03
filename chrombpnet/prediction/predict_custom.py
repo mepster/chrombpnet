@@ -80,34 +80,36 @@ def main(args):
     # prepare data frames
     schema = schemas[args.schema] # ALLVAR or SINGLEVAR
     regions_df = pd.read_csv(args.input_bed_file, sep='\t', names=schema)
-    print(regions_df.head())
-
-    # the first few fields will be concatenated to make the name
-    if args.schema == 'ALLVAR':
-        fields = regions_df.iloc[:, 0:5]
-    elif args.schema == 'SINGLEVAR':
-        fields = regions_df.iloc[:, 0:9]
-    else:
-        assert(False)
-    print(fields)
-    print(fields.shape)
-
-    seqs = regions_df['sequence']
-    print(seqs)
-    print(seqs.shape)
+    print("regions:")
+    print(regions_df)
 
     target_chunk_size = 100000
-    num_chunks = math.ceil(seqs.shape[0] / target_chunk_size)
+    print("target_chunk_size:", target_chunk_size)
+    num_chunks = math.ceil(regions_df.shape[0] / target_chunk_size)
     print("num_chunks:", num_chunks)
 
     # predict, in chunks
     with Predictions_h5(args.output_prefix + "_chrombpnet_nobias") as file:
-        fields_chunks = np.array_split(fields, num_chunks)
-        seqs_chunks = np.array_split(seqs, num_chunks)
-        for fields_chunk, seqs_chunk in zip(fields_chunks, seqs_chunks):
-            chunk_size = fields_chunk.shape[0]
+        regions_chunks = np.array_split(regions_df, num_chunks)
+        for regions_chunk in regions_chunks:
+            chunk_size = regions_chunk.shape[0]
             print("chunk size:", chunk_size)
 
+            # get names for this chunk
+            if args.schema == 'ALLVAR':
+                fields_chunk = regions_chunk.iloc[:, 0:5]
+            elif args.schema == 'SINGLEVAR':
+                fields_chunk = regions_chunk.iloc[:, 0:9]
+            else:
+                assert(False)
+            print("fields:")
+            print(fields_chunk)
+            names = ["/".join(map(str,x)) for x in fields_chunk.values.tolist()]
+            assert(len(names) == chunk_size)
+
+            # get seqs for this chunk
+            seqs_chunk = regions_chunk['sequence']
+            print("seqs:")
             print(seqs_chunk)
             #print(seqs_chunk.shape)
             one_hot_seqs_chunk = one_hot.dna_to_one_hot(np.array(seqs_chunk))
@@ -116,6 +118,7 @@ def main(args):
             assert(one_hot_seqs_chunk.shape[0] == chunk_size)
             assert(one_hot_seqs_chunk.shape[1] == inputlen)
 
+            # predict this chunk
             pred_logits_wo_bias, pred_logcts_wo_bias = model_chrombpnet_nb.predict([one_hot_seqs_chunk],
                                               batch_size = args.batch_size, # GPU batch size
                                               verbose=True)
@@ -130,16 +133,11 @@ def main(args):
             counts_sum = np.squeeze(pred_logcts_wo_bias)
             #print("profile_probs.shape:", profile_probs.shape)
             #print("counts_sum.shape:", counts_sum.shape)
+            assert(profile_probs.shape[0] == chunk_size)
+            assert(counts_sum.shape[0] == chunk_size)
 
             # I think absolute profiles should be computed like this:
             # abs_profiles = profile_probs * np.expand_dims(np.exp(counts_sum),axis=1)
-
-            # compose the name for each row - it's made of the first 5 fields joined with a "/"
-            names = ["/".join(map(str,x)) for x in fields_chunk.values.tolist()]
-            #print("len(names):", len(names))
-            assert(len(names) == chunk_size)
-            assert(profile_probs.shape[0] == chunk_size)
-            assert(counts_sum.shape[0] == chunk_size)
 
             # write named predictions
             file.write_batch(profile_probs, counts_sum, names)
