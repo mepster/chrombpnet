@@ -12,7 +12,7 @@ import chrombpnet.training.utils.one_hot as one_hot
 import h5py
 
 schemas = {'ALLVAR': ["chr", "start", "end", "species", "peak_name", "6", "7", "8", "9", "10", "sequence"],
-           'SINGLEVAR': ["chr_hum", "start_hum", "end_hum", "SNP_hum_chimp", "species", "chr_chimp", "start_chimp", "end_chimp", "peak_name", "10", "11", "12", "13", "14", "sequence"]}
+           'SINGLEVAR': ["snp_chr", "snp_start", "snp_end", "snp_hum_chimp", "species", "chr", "start", "end", "peak_name", "10", "11", "12", "13", "14", "sequence"]}
 
 class Predictions_h5():
     def __init__(self, output_prefix):
@@ -77,21 +77,22 @@ def main(args):
         inputlen = int(model_chrombpnet_nb.input_shape[1])
         outputlen = int(model_chrombpnet_nb.output_shape[0][1])
 
-    # prepare data frames
+    # prepare data frame
     schema = schemas[args.schema] # ALLVAR or SINGLEVAR
     regions_df = pd.read_csv(args.input_bed_file, sep='\t', names=schema)
     print("regions:")
     print(regions_df)
 
+    # predict, in chunks
     target_chunk_size = 100000
     print("target_chunk_size:", target_chunk_size)
     num_chunks = math.ceil(regions_df.shape[0] / target_chunk_size)
     print("num_chunks:", num_chunks)
 
-    # predict, in chunks
     with Predictions_h5(args.output_prefix + "_chrombpnet_nobias") as file:
         regions_chunks = np.array_split(regions_df, num_chunks)
-        for regions_chunk in regions_chunks:
+        for idx, regions_chunk in enumerate(regions_chunks):
+            print(f"chunk {idx} of {num_chunks}")
             chunk_size = regions_chunk.shape[0]
             print("chunk size:", chunk_size)
 
@@ -130,17 +131,20 @@ def main(args):
             pred_logits_wo_bias = np.squeeze(pred_logits_wo_bias)
 
             profile_probs = softmax(pred_logits_wo_bias)
-            counts_sum = np.squeeze(pred_logcts_wo_bias)
+            logcounts = np.squeeze(pred_logcts_wo_bias)
             #print("profile_probs.shape:", profile_probs.shape)
-            #print("counts_sum.shape:", counts_sum.shape)
+            #print("logcounts.shape:", logcounts.shape)
             assert(profile_probs.shape[0] == chunk_size)
-            assert(counts_sum.shape[0] == chunk_size)
+            assert(profile_probs.shape[1] == outputlen)
+            assert(logcounts.shape[0] == chunk_size)
 
-            # I think absolute profiles should be computed like this:
-            # abs_profiles = profile_probs * np.expand_dims(np.exp(counts_sum),axis=1)
+            # The absolute profiles should be computed like this:
+            # abs_profiles = profile_probs * np.expand_dims(np.exp(logcounts),axis=1)
+            # See chrombpnet/training/data_generators/batchgen_generator.py, line 105,
+            #   where the logcounts are computed as np.log(1+batch_cts.sum(-1, keepdims=True))
 
             # write named predictions
-            file.write_batch(profile_probs, counts_sum, names)
+            file.write_batch(profile_probs, logcounts, names)
 
     # workaround to explicitly close strategy. https://github.com/tensorflow/tensorflow/issues/50487
     import atexit
