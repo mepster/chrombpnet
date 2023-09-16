@@ -129,7 +129,7 @@ def main(args):
 
     regions_df[peaks_used].to_csv("{}.interpreted_regions.bed".format(args.output_prefix), header=False, sep='\t')
 
-    if 1:
+    if 0:
         # run "profile" and "counts" in parallel
         from multiprocessing import Process
         os.environ["PYTHONUNBUFFERED"] = "1"

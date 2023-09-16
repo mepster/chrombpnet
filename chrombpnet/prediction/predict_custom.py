@@ -12,7 +12,8 @@ import chrombpnet.training.utils.one_hot as one_hot
 import h5py
 
 schemas = {'ALLVAR': ["chr", "start", "end", "species", "peak_name", "6", "7", "8", "9", "10", "sequence"],
-           'SINGLEVAR': ["snp_chr", "snp_start", "snp_end", "snp_hum_chimp", "species", "chr", "start", "end", "peak_name", "10", "11", "12", "13", "14", "sequence"]}
+           'SINGLEVAR': ["snp_chr", "snp_start", "snp_end", "snp_hum_chimp", "species", "chr", "start", "end", "peak_name", "10", "11", "12", "13", "14", "sequence"],
+           'ALLVAR2': ["chr", "start", "end", "species", "sequence"]}
 
 class Predictions_h5():
     def __init__(self, output_prefix):
@@ -101,6 +102,8 @@ def main(args):
                 fields_chunk = regions_chunk.iloc[:, 0:5]
             elif args.schema == 'SINGLEVAR':
                 fields_chunk = regions_chunk.iloc[:, 0:9]
+            elif args.schema == 'ALLVAR2':
+                fields_chunk = regions_chunk.iloc[:, 0:4]
             else:
                 assert(False)
             print("fields:")

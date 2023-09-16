@@ -5,7 +5,7 @@ import copy
 from chrombpnet.data import DefaultDataFile, get_default_data_path
 from chrombpnet.data import print_meme_motif_file
 from chrombpnet.helpers.misc import get_strategy
-from chrombpnet.helpers.misc import run_parallel_cmds
+from chrombpnet.helpers.misc import run_parallel_cmds2
 from chrombpnet.helpers.misc import get_strategy
 import numpy as np
 
@@ -393,17 +393,15 @@ def train_bias_pipeline(args):
 	meme_file=get_default_data_path(DefaultDataFile.motifs_meme)
 
 	# modisco-lite pipeline
-	
-	# modisco-lite pipeline
 	cmds = []
 	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx))))
 	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx))))
-	run_parallel_commands2(cmds)
+	run_parallel_cmds2(cmds)
 
 	cmds = []
 	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file))
 	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file))
-	run_parallel_commands2(cmds)
+	run_parallel_cmds2(cmds)
 	
 	import chrombpnet.evaluation.modisco.convert_html_to_pdf as convert_html_to_pdf
 	convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_counts/motifs.html"),os.path.join(args.output_dir,"evaluation/{}bias_counts.pdf".format(fpx)))
