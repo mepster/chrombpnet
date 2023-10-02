@@ -28,10 +28,14 @@ def get_cts(peaks_df, bw, width):
     """
     vals = []
     for i, r in peaks_df.iterrows():
-        vals.append(np.nan_to_num(bw.values(r['chr'], 
-                                            r['start'] + r['summit'] - width//2,
-                                            r['start'] + r['summit'] + width//2)))
-        
+        val = np.nan_to_num(bw.values(r['chr'],
+                                      r['start'] + r['summit'] - width//2,
+                                      r['start'] + r['summit'] + width//2))
+        if np.sum(val) == 0.0:
+            print("got a profile with np.sum() == 0.0!")
+
+        vals.append(val)
+
     return np.array(vals)
 
 def get_coords(peaks_df, peaks_bool):
