@@ -55,6 +55,7 @@ def read_parser():
         	required_train.add_argument("-p", "--peaks", type=str, required=True, help="10 column bed file of peaks. Sequences and labels will be extracted centered at start (2nd col) + summit (10th col).")
         	required_train.add_argument("-n", "--nonpeaks", type=str, required=True, help="10 column bed file of non-peak regions, centered at summit (10th column)")
         	required_train.add_argument("-fl", "--chr-fold-path", type=str, required=True, help="Fold information - dictionary with test,valid and train keys and values with corresponding chromosomes")
+        	required_train.add_argument("-cbw", "--cachedbigwig", type=str, required=False, help="Use a cached bigwig file. This avoids regenerating the bw from the bam/frag/itag file with 'reads_to_bigwig'. The bw file MUST have been derived from the bam/frag/itag file specified, or results will be unpredictable!")
         	optional_train.add_argument("-oth", "--outlier-threshold", type=float, default=0.9999, help="threshold to use to filter outlies")
         	#optional_train.add_argument('-ps', '--plus-shift', type=int, default=None, help="Plus strand shift applied to reads. Estimated if not specified")
         	#optional_train.add_argument('-ms', '--minus-shift', type=int, default=None, help="Minus strand shift applied to reads. Estimated if not specified")

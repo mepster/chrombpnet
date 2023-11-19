@@ -20,28 +20,22 @@ def chrombpnet_train_pipeline(args):
 	strategy = get_strategy(args)
 
 	# Shift bam and convert to bigwig
-	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
-	args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
-	args.plus_shift = None
-	args.minus_shift = None
-	if 1:
-		import shutil
-		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
-		if os.path.exists(cached_bw_path):
-			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
-			shutil.copyfile(cached_bw_path, dest)
-		else:
-			print(f"generating new BigWig file {dest}")
-			reads_to_bigwig.main(args)
-			print(f"copying newly generated BigWig file {dest} to cache {cached_bw_path}")
-			shutil.copyfile(dest, cached_bw_path) # copy the bigwig file back out to cwd
+	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
+	if args.cachedbigwig:
+		# If args.cachedbigwig is set, then use the specified cached bigwig file. This avoids regenerating the bw from the bam/frag/itag file with 'reads_to_bigwig' below. The bw file MUST have been derived from the bam/frag/itag file specified, or results will be unpredictable!
+		print(f"Using cached bigwig file {args.cachedbigwig}")
+		args.bigwig = args.cachedbigwig
 	else:
+		print("Generating new bigwig file")
+		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
+		args.plus_shift = None
+		args.minus_shift = None
 		reads_to_bigwig.main(args)
+		# use the newly generated bigwig file
+		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	
 	# QC bigwig
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
-	args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
 	assert(len(folds["valid"]) > 0) # validation list of chromosomes is empty
@@ -293,28 +287,22 @@ def train_bias_pipeline(args):
 	strategy = get_strategy(args)
 
 	# Shift bam and convert to bigwig
-	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
-	args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
-	args.plus_shift = None
-	args.minus_shift = None
-	if 1:
-		import shutil
-		cached_bw_path = f"{fpx}data_unstranded.bw" # cached bw file in cwd
-		dest = args.output_dir + f"/auxiliary/{fpx}data_unstranded.bw"
-		if os.path.exists(cached_bw_path):
-			print(f"copying cached BigWig file {cached_bw_path} to run directory {dest}")
-			shutil.copyfile(cached_bw_path, dest)
-		else:
-			print(f"generating new BigWig file {dest}")
-			reads_to_bigwig.main(args)
-			print(f"copying newly generated BigWig file {dest} to cache {cached_bw_path}")
-			shutil.copyfile(dest, cached_bw_path) # copy the bigwig file back out to cwd
+	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
+	if args.cachedbigwig:
+		# If args.cachedbigwig is set, then use the specified cached bigwig file. This avoids regenerating the bw from the bam/frag/itag file with 'reads_to_bigwig' below. The bw file MUST have been derived from the bam/frag/itag file specified, or results will be unpredictable!
+		print(f"Using cached bigwig file {args.cachedbigwig}")
+		args.bigwig = args.cachedbigwig
 	else:
+		print("Generating new bigwig file")
+		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
+		args.plus_shift = None
+		args.minus_shift = None
 		reads_to_bigwig.main(args)
+		# use the newly generated bigwig file
+		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 
 	# QC bigwig
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
-	args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
 	assert(len(folds["valid"]) > 0) # validation list of chromosomes is empty
