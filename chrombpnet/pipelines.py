@@ -21,10 +21,9 @@ def chrombpnet_train_pipeline(args):
 
 	# Shift bam and convert to bigwig
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
-	if args.cachedbigwig:
-		# If args.cachedbigwig is set, then use the specified cached bigwig file. This avoids regenerating the bw from the bam/frag/itag file with 'reads_to_bigwig' below. The bw file MUST have been derived from the bam/frag/itag file specified, or results will be unpredictable!
-		print(f"Using cached bigwig file {args.cachedbigwig}")
-		args.bigwig = args.cachedbigwig
+	if args.bigwig:
+		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
+		print(f"Using pregenerated bigwig file {args.bigwig}")
 	else:
 		print("Generating new bigwig file")
 		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
@@ -288,10 +287,9 @@ def train_bias_pipeline(args):
 
 	# Shift bam and convert to bigwig
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
-	if args.cachedbigwig:
-		# If args.cachedbigwig is set, then use the specified cached bigwig file. This avoids regenerating the bw from the bam/frag/itag file with 'reads_to_bigwig' below. The bw file MUST have been derived from the bam/frag/itag file specified, or results will be unpredictable!
-		print(f"Using cached bigwig file {args.cachedbigwig}")
-		args.bigwig = args.cachedbigwig
+	if args.bigwig:
+		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
+		print(f"Using pregenerated bigwig file {args.bigwig}")
 	else:
 		print("Generating new bigwig file")
 		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
