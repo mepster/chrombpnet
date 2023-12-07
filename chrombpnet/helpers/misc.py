@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE, run
 from contextlib import ExitStack
 import os
+import tensorflow as tf
 
 def run_parallel_cmds2(cmds):
     os.environ["PYTHONUNBUFFERED"] = "1"
@@ -63,16 +64,23 @@ def run_parallel_cmds(cmds, fnames=None, chunk_output=False, raise_exception=Fal
         raise Exception(f"run_parallel_cmds: at least one command failed")
 
 def get_strategy(args):
-    import tensorflow as tf
-
     # get tf strategy to either run on single, or multiple GPUs
+    # you can also do this for cpu only: return tf.distribute.OneDeviceStrategy(device="/cpu:0")
+
     if vars(args).get('multiGPU') and args.multiGPU:
         # run the model in "data parallel" mode on multiple GPU devices (on one machine).
         strategy = tf.distribute.MirroredStrategy()
         print('Number of GPU devices: {}'.format(strategy.num_replicas_in_sync))
+
+        # workaround to explicitly close strategy. https://github.com/tensorflow/tensorflow/issues/50487
+        # this will supposedly be fixed in tensorflow 2.10
+        version = tf.__version__.split(".")
+        if (int(version[0]) < 2 or int(version[1]) < 10):
+            import atexit
+            atexit.register(strategy._extended._collective_ops._pool.close)
     else:
         strategy = tf.distribute.get_strategy()
-        print('Single device')
+        print('Single GPU device')
 
     return strategy
 
