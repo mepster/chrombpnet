@@ -63,7 +63,37 @@ def run_parallel_cmds(cmds, fnames=None, chunk_output=False, raise_exception=Fal
     if raise_exception and failed:
         raise Exception(f"run_parallel_cmds: at least one command failed")
 
+def get_gpu_scope(args):
+    """
+    Get a tf strategy.scope to either run on single, or multiple GPUs.
+    Use it like this:
+        with get_gpu_scope(args):
+            // load model here
+    If --multiGPU is not set, it returns an empty scope that won't change anything.
+    You can still set e.g., CUDA_VISIBLE_DEVICES=1,2 in your environment and it will work.
+    """
+    if vars(args).get('multiGPU') and args.multiGPU:
+        # run the model in "data parallel" mode on multiple GPU devices (on one machine).
+        strategy = tf.distribute.MirroredStrategy()
+        print('Number of GPU devices: {}'.format(strategy.num_replicas_in_sync))
+
+        # workaround to explicitly close strategy. https://github.com/tensorflow/tensorflow/issues/50487
+        # this will supposedly be fixed in tensorflow 2.10
+        version = tf.__version__.split(".")
+        if (int(version[0]) < 2 or int(version[1]) < 10):
+            import atexit
+            atexit.register(strategy._extended._collective_ops._pool.close)
+
+        return strategy.scope()
+    else:
+        print('Single GPU device')
+        class EmptyScope(object):
+            def __enter__(self): pass
+            def __exit__(self, exc_type, exc_val, exc_tb): pass
+        return EmptyScope()
+
 def get_strategy(args):
+    print("get_strategy() is deprecated! Use get_gpu_scope()")
     # get tf strategy to either run on single, or multiple GPUs
     # you can also do this for cpu only: return tf.distribute.OneDeviceStrategy(device="/cpu:0")
 
@@ -83,7 +113,6 @@ def get_strategy(args):
         print('Single GPU device')
 
     return strategy
-
 
 if __name__ == '__main__':
     cmds, fnames = [], []

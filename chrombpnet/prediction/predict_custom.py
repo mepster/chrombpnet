@@ -5,7 +5,7 @@ import pandas as pd
 from tensorflow.keras.utils import get_custom_objects
 from tensorflow.keras.models import load_model
 import tensorflow as tf
-from chrombpnet.helpers.misc import get_strategy
+from chrombpnet.helpers.misc import get_gpu_scope
 #import chrombpnet.prediction.bigwig_helper as bigwig_helper
 import chrombpnet.training.utils.losses as losses
 import chrombpnet.training.utils.one_hot as one_hot
@@ -62,8 +62,8 @@ def softmax(x, temp=1):
 
 def load_model_wrapper(model_hdf5):
     # read .h5 model
-    custom_objects={"multinomial_nll":losses.multinomial_nll, "tf": tf}    
-    get_custom_objects().update(custom_objects)    
+    custom_objects={"multinomial_nll":losses.multinomial_nll, "tf": tf}
+    get_custom_objects().update(custom_objects)
     model=load_model(model_hdf5, compile=False)
     print(f"got the model from {model_hdf5}")
     model.summary()
@@ -71,12 +71,11 @@ def load_model_wrapper(model_hdf5):
 
 def main(args):
     # get tf strategy to either run on single, or multiple GPUs
-    strategy = get_strategy(args)
-    with strategy.scope():
+    with get_gpu_scope(args):
         # load model
         model_chrombpnet_nb = load_model_wrapper(model_hdf5=args.chrombpnet_model_nb)
-        inputlen = int(model_chrombpnet_nb.input_shape[1])
-        outputlen = int(model_chrombpnet_nb.output_shape[0][1])
+    inputlen = int(model_chrombpnet_nb.input_shape[1])
+    outputlen = int(model_chrombpnet_nb.output_shape[0][1])
 
     # prepare data frame
     schema = schemas[args.schema] # ALLVAR or SINGLEVAR
@@ -149,12 +148,6 @@ def main(args):
             # write named predictions
             file.write_batch(profile_probs, logcounts, names)
 
-    # workaround to explicitly close strategy. https://github.com/tensorflow/tensorflow/issues/50487
-    import atexit
-    atexit.register(strategy._extended._collective_ops._pool.close)  # type: ignore
-
 
 if __name__=="__main__":
     print("running from command line not implemented")
-    # args = parse_args
-    # main(args)
