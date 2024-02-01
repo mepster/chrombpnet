@@ -4,9 +4,8 @@ import json
 import copy
 from chrombpnet.data import DefaultDataFile, get_default_data_path
 from chrombpnet.data import print_meme_motif_file
-from chrombpnet.helpers.misc import get_strategy
 from chrombpnet.helpers.misc import run_parallel_cmds2
-from chrombpnet.helpers.misc import get_strategy
+from chrombpnet.helpers.misc import get_gpu_scope
 import numpy as np
 
 def chrombpnet_train_pipeline(args):
@@ -16,9 +15,6 @@ def chrombpnet_train_pipeline(args):
 	else:
 		fpx = ""
 		
-	# get tf strategy to either run on single, or multiple GPUs
-	strategy = get_strategy(args)
-
 	# Shift bam and convert to bigwig
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
 	if args.bigwig:
@@ -48,7 +44,7 @@ def chrombpnet_train_pipeline(args):
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"evaluation/bias")
 	args_copy.model_h5 = args.bias_model_path
 	args_copy.nonpeaks = "None"
-	with strategy.scope():
+	with get_gpu_scope(args):
 		predict.main(args_copy)
 	
 	# QC bias model performance in peaks
@@ -82,7 +78,7 @@ def chrombpnet_train_pipeline(args):
 	args_copy.nonpeaks = os.path.join(args.output_dir,"auxiliary/{}filtered.nonpeaks.bed".format(fpx))
 	args_copy.output_prefix = os.path.join(args.output_dir,"models/{}chrombpnet".format(fpx))
 	args_copy.params = os.path.join(args.output_dir,"logs/{}chrombpnet_model_params.tsv".format(fpx))
-	with strategy.scope():
+	with get_gpu_scope(args):
 		train.main(args_copy)
 	
 	# separating models from logs
@@ -105,7 +101,7 @@ def chrombpnet_train_pipeline(args):
 	args_copy.output_prefix = os.path.join(args.output_dir,"evaluation/{}chrombpnet".format(fpx))
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}chrombpnet.h5".format(fpx))
 	args_copy.nonpeaks = "None"
-	with strategy.scope():
+	with get_gpu_scope(args):
 		predict.main(args_copy)
 	
 	# marginal footprinting with model
@@ -126,7 +122,7 @@ def chrombpnet_train_pipeline(args):
 	args_copy.output_prefix = os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias".format(fpx))
 	args_copy.motifs_to_pwm = os.path.join(args_copy.output_dir,"auxiliary/motif_to_pwm.tsv")
 	args_copy.ylim = None
-	with strategy.scope():
+	with get_gpu_scope(args):
 		marginal_footprinting.main(args_copy)
 	
 	# separating models from logs
@@ -149,7 +145,7 @@ def chrombpnet_train_pipeline(args):
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}chrombpnet_nobias.h5".format(fpx))
 	args_copy.output_prefix = os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}chrombpnet_nobias".format(fpx))
 	args_copy.debug_chr = None
-	with strategy.scope():  # shap doesn't use multiGPU, but in case it does in the future
+	with get_gpu_scope(args): # shap doesn't use multiGPU, but in case it does in the future
 		interpret.main(args_copy)
 	
 	import chrombpnet
@@ -282,9 +278,6 @@ def train_bias_pipeline(args):
 	else:
 		fpx = ""
 
-	# get tf strategy to either run on single, or multiple GPUs
-	strategy = get_strategy(args)
-
 	# Shift bam and convert to bigwig
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
 	if args.bigwig:
@@ -329,7 +322,7 @@ def train_bias_pipeline(args):
 	args_copy.nonpeaks = os.path.join(args_copy.output_dir,"auxiliary/{}filtered.bias_nonpeaks.bed".format(fpx))
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"models/{}bias".format(fpx))
 	args_copy.params = os.path.join(args_copy.output_dir,"logs/{}bias_model_params.tsv".format(fpx))
-	with strategy.scope():
+	with get_gpu_scope(args):
 		train.main(args_copy)
 	
 	# separating models from logs
@@ -352,7 +345,7 @@ def train_bias_pipeline(args):
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"evaluation/{}bias".format(fpx))
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}bias.h5".format(fpx))
-	with strategy.scope():
+	with get_gpu_scope(args):
 		predict.main(args_copy)
 
 	# get contributions scores with model
@@ -371,7 +364,7 @@ def train_bias_pipeline(args):
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}bias.h5".format(fpx))
 	args_copy.output_prefix = os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias".format(fpx))
 	args_copy.debug_chr = None
-	with strategy.scope():  # shap doesn't use multiGPU, but in case it does in the future
+	with get_gpu_scope(args): # shap doesn't use multiGPU, but in case it does in the future
 		interpret.main(args_copy)
 	
 	import chrombpnet
