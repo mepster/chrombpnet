@@ -89,7 +89,8 @@ def initialize_generators(args, mode, parameters, return_coords):
                                     cts_bw_file=args.bigwig,
                                     add_revcomp=add_revcomp,
                                     return_coords=return_coords,
-                                    shuffle_at_epoch_start=shuffle_at_epoch_start
+                                    shuffle_at_epoch_start=shuffle_at_epoch_start,
+                                    aux_genome_fasta=args.aux_genome
                                     )
     
     return generator

@@ -35,15 +35,26 @@ def fetch_interpret_args():
 
 def generate_shap_dict(seqs, scores):
     assert(seqs.shape==scores.shape)
-    assert(seqs.shape[2]==4)
 
-    # construct a dictionary for the raw shap scores and the
-    # the projected shap scores
+    assert (seqs.shape[2] == 4) or (seqs.shape[2] == 8)
+    raw = np.transpose(seqs, (0, 2, 1)).astype(np.int8)
+    shap = np.transpose(scores, (0, 2, 1)).astype(np.float16)
+    projected_shap = np.transpose(seqs * scores, (0, 2, 1)).astype(np.float16)
+    if seqs.shape[2]==8:
+        # if there is an aux_genome
+        # Take just the first 4 columns - the A C G T onehot
+        # In other words, just plot the normal motifs, ignoring the conservation columns.
+        # This throws away information... instead should figure out a way to plot the conservation score.
+        raw = raw[:, :, 0:4]
+        shap = shap[:, :, 0:4]
+        projected_shap = projected_shap[:, :, 0:4]
+
+    # construct a dictionary for the raw shap scores and the projected shap scores
     # MODISCO workflow expects one hot sequences with shape (None,4,inputlen)
     d = {
-            'raw': {'seq': np.transpose(seqs, (0, 2, 1)).astype(np.int8)},
-            'shap': {'seq': np.transpose(scores, (0, 2, 1)).astype(np.float16)},
-            'projected_shap': {'seq': np.transpose(seqs*scores, (0, 2, 1)).astype(np.float16)}
+            'raw': {'seq': raw},
+            'shap': {'seq': shap},
+            'projected_shap': {'seq': projected_shap}
         }
 
     return d
@@ -126,6 +137,12 @@ def main(args):
     genome = pyfaidx.Fasta(args.genome)
     seqs, peaks_used = input_utils.get_seq(regions_df, genome, inputlen)
     genome.close()
+
+    if args.aux_genome:
+        aux_genome = pyfaidx.Fasta(args.aux_genome)
+        aux_seqs, _ = input_utils.get_seq(regions_df, aux_genome, inputlen)
+        seqs = np.concatenate((seqs, aux_seqs), axis=2)
+        aux_genome.close()
 
     regions_df[peaks_used].to_csv("{}.interpreted_regions.bed".format(args.output_prefix), header=False, sep='\t')
 

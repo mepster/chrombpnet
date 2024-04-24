@@ -24,14 +24,14 @@ def load_pretrained_bias(model_hdf5):
     return pretrained_bias_model
 
 
-def bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len):
+def bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len, onehot_seq_width):
 
     conv1_kernel_size=21
     profile_kernel_size=75
     num_tasks=1 # not using multi tasking
 
     #define inputs
-    inp = Input(shape=(sequence_len, 4),name='sequence')    
+    inp = Input(shape=(sequence_len, onehot_seq_width),name='sequence')
 
     # first convolution without dilation
     x = Conv1D(filters,
@@ -89,7 +89,7 @@ def bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len):
     return model
 
 
-def getModelGivenModelOptionsAndWeightInits(args, model_params):   
+def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width):
     
     assert("bias_model_path" in model_params.keys()) # bias model path not specfied for model
     filters=int(model_params['filters'])
@@ -101,7 +101,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
 
 
     bias_model = load_pretrained_bias(bias_model_path)
-    bpnet_model_wo_bias = bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len)
+    bpnet_model_wo_bias = bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len, onehot_seq_width)
 
     #read in arguments
     seed=args.seed
@@ -109,7 +109,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     tf.random.set_seed(seed)
     rn.seed(seed)
     
-    inp = Input(shape=(sequence_len, 4),name='sequence')    
+    inp = Input(shape=(sequence_len, onehot_seq_width),name='sequence')
 
     ## get bias output
     bias_output=bias_model(inp)

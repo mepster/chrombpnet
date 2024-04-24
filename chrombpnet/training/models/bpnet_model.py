@@ -10,7 +10,7 @@ import os
 
 os.environ['PYTHONHASHSEED'] = '0'
 
-def getModelGivenModelOptionsAndWeightInits(args, model_params):
+def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width):
     #default params (can be overwritten by providing model_params file as input to the training function)
     conv1_kernel_size=21
     profile_kernel_size=75
@@ -36,7 +36,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     rn.seed(seed)
 
     #define inputs
-    inp = Input(shape=(sequence_len, 4),name='sequence')    
+    inp = Input(shape=(sequence_len, onehot_seq_width),name='sequence')
 
     # first convolution without dilation
     x = Conv1D(filters,

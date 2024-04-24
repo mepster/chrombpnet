@@ -45,6 +45,7 @@ def read_parser():
         def general_training_args(required_train, optional_train):
 
                 required_train.add_argument('-g','--genome', required=True, type=str, help="reference genome fasta file")
+                required_train.add_argument('-ag', '--aux_genome', required=False, default=None, type=str, help="auxiliary genome (e.g., conservation fasta file)")
                 required_train.add_argument('-c', '--chrom-sizes', type=str, required=True, help="Chrom sizes file")
                 group = required_train.add_mutually_exclusive_group(required=True)
                 group.add_argument('-ibam', '--input-bam-file', type=str, help="Input BAM file")

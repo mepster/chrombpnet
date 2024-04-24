@@ -21,8 +21,14 @@ def get_model(args, parameters):
     The files should have the following two functions - getModelGivenModelOptionsAndWeightInits and save_model_without_bias
     """
     architecture_module=importlib.machinery.SourceFileLoader('',args.architecture_from_file).load_module()
-    model=architecture_module.getModelGivenModelOptionsAndWeightInits(args, parameters)
-    print("got the model")
+
+    if args.aux_genome:  # if there is an aux_genome file, the seqs are twice as wide
+        onehot_seq_width = 8
+    else:
+        onehot_seq_width = 4
+    model=architecture_module.getModelGivenModelOptionsAndWeightInits(args, parameters, onehot_seq_width)
+
+    print(f"got the model, onehot_seq_width={onehot_seq_width}")
     return model, architecture_module
 
 def fit_and_evaluate(model,train_gen,valid_gen,args,architecture_module):
