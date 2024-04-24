@@ -89,7 +89,7 @@ def main(args):
     num_chunks = math.ceil(regions_df.shape[0] / target_chunk_size)
     print("num_chunks:", num_chunks)
 
-    with Predictions_h5(args.output_prefix + "_chrombpnet_nobias") as file:
+    with Predictions_h5(args.output_prefix) as file:
         regions_chunks = np.array_split(regions_df, num_chunks)
         for idx, regions_chunk in enumerate(regions_chunks):
             print(f"chunk {idx} of {num_chunks}")

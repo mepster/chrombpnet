@@ -102,6 +102,7 @@ class ChromBPNetBatchGenerator(keras.utils.Sequence):
         batch_coords = self.cur_coords[idx*self.batch_size:(idx+1)*self.batch_size]
 
         if self.return_coords:
+            # i.e., the label is [batch_cts, np.log(1+batch_cts.sum())]
             return (batch_seq, [batch_cts, np.log(1+batch_cts.sum(-1, keepdims=True))], batch_coords)
         else:
             return (batch_seq, [batch_cts, np.log(1+batch_cts.sum(-1, keepdims=True))])

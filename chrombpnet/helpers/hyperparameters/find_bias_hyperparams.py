@@ -76,6 +76,10 @@ def main(args):
     assert(len(peak_cnts) == peaks.shape[0])
     assert(len(nonpeak_cnts) == nonpeaks.shape[0])
 
+    if 0:
+        peaks['counts'] = peak_cnts
+        nonpeaks['counts'] = nonpeak_cnts
+
     final_cnts = nonpeak_cnts
     counts_threshold = np.quantile(peak_cnts,0.01)*args.bias_threshold_factor
     assert(counts_threshold > 0) # counts threshold is 0 - all non peaks will be filtered!
@@ -95,10 +99,21 @@ def main(args):
 
     print("Number of nonpeaks after applying upper-bound cut-off and removing outliers : ", nonpeaks.shape[0])
 
+    # # mep: actually, do filter out test_nonpeaks that have zero count
+    # print("Number of test_nonpeaks before count>0 filtering : ", test_nonpeaks.shape[0])
+    # test_nonpeak_cnts, _ = param_utils.get_seqs_cts(genome, bw, test_nonpeaks, args.inputlen, args.outputlen)
+    # assert(len(test_nonpeak_cnts) == test_nonpeaks.shape[0])
+    # test_nonpeaks = test_nonpeaks[test_nonpeak_cnts>0]
+    # print("Number of test_nonpeaks after count>0 filtering : ", test_nonpeaks.shape[0])
+
     # combine train valid and test peak set and store them in a new file
     frames = [nonpeaks, test_nonpeaks]
     all_nonpeaks = pd.concat(frames)
     all_nonpeaks.to_csv("{}filtered.bias_nonpeaks.bed".format(args.output_prefix), sep="\t", header=False, index=False)
+
+    if 0:
+        nonpeaks.to_csv(f"{args.output_prefix}train_nonpeaks.tsv", index=False)
+        peaks.to_csv(f"{args.output_prefix}train_peaks.tsv", index=False)
 
     # find counts loss weight for model training - using train and validation set
     counts_loss_weight = np.median(final_cnts[(final_cnts < upper_thresh) & (final_cnts>lower_thresh)])/10
