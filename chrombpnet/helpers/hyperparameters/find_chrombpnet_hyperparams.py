@@ -31,7 +31,7 @@ def parse_model_args(parser):
     args = parser.parse_args()
     return args
 
-def adjust_bias_model_logcounts(bias_model, seqs, cts):
+def adjust_bias_model_logcounts(bias_model, seqs, cts, batch_size=64):
     """
     Given a bias model, sequences and associated counts, the function adds a 
     constant to the output of the bias_model's logcounts that minimises squared
@@ -49,8 +49,13 @@ def adjust_bias_model_logcounts(bias_model, seqs, cts):
     assert(bias_model.layers[-1].output_shape==(None,1))
     assert(isinstance(bias_model.layers[-1], keras.layers.Dense))
 
+    print("seqs.shape", seqs.shape)
+    print("seqs.dtype", seqs.dtype)
+    batch_size = 16  # HACK
+    print("batch_size", batch_size)
+
     print("Predicting within adjust counts")
-    _, pred_logcts = bias_model.predict(seqs, verbose=True)
+    _, pred_logcts = bias_model.predict(seqs, batch_size=batch_size, verbose=True)
     delta = np.mean(np.log(1+cts) - pred_logcts.ravel())
 
     dw, db = bias_model.layers[-1].get_weights()
@@ -69,6 +74,7 @@ def main(args):
     # read from bigwigw and fasta file
     bw = pyBigWig.open(args.bigwig) 
     genome = pyfaidx.Fasta(args.genome)
+    aux_genome = pyfaidx.Fasta(args.aux_genome) if args.aux_genome else None
 
     # read peaks and non peaks    
     in_peaks =  pd.read_csv(args.peaks,
@@ -105,6 +111,15 @@ def main(args):
     assert(len(peak_cnts) == peaks.shape[0])
     assert(len(nonpeak_cnts) == nonpeaks.shape[0])
 
+    if args.aux_genome:
+        # concatenate the DNA seqs with the conservation seqs
+        _, nonpeaks_aux_seqs = param_utils.get_seqs_cts(aux_genome, bw, nonpeaks, args.inputlen, args.outputlen)
+        print(f"got nonpeaks_aux_seqs from {args.aux_genome}")
+        print(nonpeak_seqs.shape, nonpeaks_aux_seqs.shape)
+
+        nonpeak_seqs = np.concatenate((nonpeak_seqs, nonpeaks_aux_seqs), axis=2)
+        print(nonpeak_seqs.shape)
+        assert nonpeak_seqs.shape[2] == 8
 
     if args.negative_sampling_ratio > 0:
         final_cnts = np.concatenate((peak_cnts,np.random.choice(nonpeak_cnts, replace=False, size=(int(args.negative_sampling_ratio*len(peak_cnts))))))
@@ -145,8 +160,12 @@ def main(args):
 
     # adjust bias model for training  - using train and validation set
     # the bias model might be trained on a difference read depth compared to the given data - so this step scales the bias model to account for that
+
+    nonpeak_seqs = nonpeak_seqs[::2] # HACK
+    nonpeak_cnts = nonpeak_cnts[::2] # HACK
+
     bias_model = param_utils.load_model_wrapper(args.bias_model_path)
-    bias_model_scaled = adjust_bias_model_logcounts(bias_model, nonpeak_seqs[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)], nonpeak_cnts[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)])
+    bias_model_scaled = adjust_bias_model_logcounts(bias_model, nonpeak_seqs[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)], nonpeak_cnts[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)], batch_size=args.batch_size)
     # save the new bias model
     bias_model_scaled.save("{}bias_model_scaled.h5".format(args.output_prefix))
 
@@ -179,6 +198,12 @@ def main(args):
     file.write("\n")
     file.write("\t".join(["negative_sampling_ratio", str(args.negative_sampling_ratio)]))
     file.close()
+
+    bw.close()
+    genome.close()
+    if args.aux_genome:
+        aux_genome.close()
+
 
 if __name__=="__main__":
     # read the arguments

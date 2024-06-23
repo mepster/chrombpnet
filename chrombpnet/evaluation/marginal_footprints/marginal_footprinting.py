@@ -35,6 +35,7 @@ def load_model_wrapper(args):
 def fetch_footprinting_args():
     parser=argparse.ArgumentParser(description="get marginal footprinting for given model and given motifs")
     parser.add_argument("-g", "--genome", type=str, required=True, help="Genome fasta")
+    parser.add_argument('-ag', '--aux_genome', required=False, default=None, type=str, help="auxiliary genome (e.g., conservation fasta file)")
     parser.add_argument("-r", "--regions", type=str, required=True, help="10 column bed file of peaks. Sequences and labels will be extracted centered at start (2nd col) + summit (10th col).")
     parser.add_argument("-fl", "--chr_fold_path", type=str, required=True, help="Path to file containing chromosome splits; we will only use the test chromosomes")
     parser.add_argument("-m", "--model_h5", type=str, required=True, help="Path to trained model, can be both bias or chrombpnet model")
@@ -51,15 +52,23 @@ def softmax(x, temp=1):
     norm_x = x - np.mean(x,axis=1, keepdims=True)
     return np.exp(temp*norm_x)/np.sum(np.exp(temp*norm_x), axis=1, keepdims=True)
 
-def get_footprint_for_motif(seqs, motif, model, inputlen, batch_size):
+def get_footprint_for_motif(seqs, motif, model, inputlen, args):
     '''
     Returns footprints for a given motif. Motif is inserted in both the actual sequence and reverse complemented version.
     seqs input is already assumed to be one-hot encoded. motif is in sequence format.
     '''
     midpoint=inputlen//2
+    batch_size = args.batch_size
 
     w_mot_seqs = seqs.copy()
-    w_mot_seqs[:, midpoint-len(motif)//2:midpoint-len(motif)//2+len(motif)] = one_hot.dna_to_one_hot([motif])
+    # prob not necessary to separate these 2 cases
+    # first one should work whether or not there was an aux_genome, but don't want to change any code in second case (original)
+    if args.aux_genome:  
+      # just paste in seq onehot bits [0:4], don't write over the aux onehot bits [4:]
+      w_mot_seqs[:, midpoint-len(motif)//2:midpoint-len(motif)//2+len(motif), 0:4] = one_hot.dna_to_one_hot([motif])
+      #w_mot_seqs[:, midpoint-len(motif)//2:midpoint-len(motif)//2+len(motif), 4:8] = one_hot.dna_to_one_hot([motif]) # REVERSE the genome and aux_genome
+    else:
+      w_mot_seqs[:, midpoint-len(motif)//2:midpoint-len(motif)//2+len(motif)] = one_hot.dna_to_one_hot([motif])
 
     # midpoint of motif is the midpoint of sequence
     pred_output=model.predict(w_mot_seqs, batch_size=batch_size, verbose=True)
@@ -82,6 +91,7 @@ def main(args):
 	pwm_df = pd.read_csv(args.motifs_to_pwm, sep='\t',names=PWM_SCHEMA)
 	print(pwm_df.head())
 	genome_fasta = pyfaidx.Fasta(args.genome)
+	aux_genome_fasta = pyfaidx.Fasta(args.aux_genome) if args.aux_genome else None
 
 	model=load_model_wrapper(args)
 	inputlen = model.input_shape[1] 
@@ -96,6 +106,16 @@ def main(args):
 	regions_subsample = regions_df[(regions_df["chr"].isin(chroms_to_keep))]
 	regions_seqs = get_seq(regions_subsample, genome_fasta, inputlen)
 
+	if args.aux_genome:
+		# concatenate the DNA seqs with the conservation seqs
+		regions_aux_seqs = get_seq(regions_subsample, aux_genome_fasta, inputlen)
+		print(f"got regions_aux_seqs from {args.aux_genome}")
+		print(regions_seqs.shape, regions_aux_seqs.shape)
+
+		regions_seqs = np.concatenate((regions_seqs, regions_aux_seqs), axis=2)
+		print(regions_seqs.shape)
+		assert regions_seqs.shape[2] == 8
+
 	footprints_at_motifs = {}
 
 	avg_response_at_tn5 = []
@@ -104,7 +124,7 @@ def main(args):
 	motif_to_insert_fwd = ""
 	print("inserting motif: ", motif)
 	print(motif_to_insert_fwd)
-	motif_footprint, motif_counts = get_footprint_for_motif(regions_seqs, motif_to_insert_fwd, model, inputlen, args.batch_size)
+	motif_footprint, motif_counts = get_footprint_for_motif(regions_seqs, motif_to_insert_fwd, model, inputlen, args)
 	footprints_at_motifs[motif]=[motif_footprint,motif_counts]
 
 	plt.figure()
@@ -124,7 +144,7 @@ def main(args):
 		motif_to_insert_fwd=row["MOTIF_PWM_FWD"]        
 		print("inserting motif: ", motif)
 		print(motif_to_insert_fwd)
-		motif_footprint, motif_counts = get_footprint_for_motif(regions_seqs, motif_to_insert_fwd, model, inputlen, args.batch_size)
+		motif_footprint, motif_counts = get_footprint_for_motif(regions_seqs, motif_to_insert_fwd, model, inputlen, args)
 		footprints_at_motifs[motif]=[motif_footprint,motif_counts]
 
 		# plot footprints of center 200bp
@@ -156,6 +176,8 @@ def main(args):
 		footprints_at_motifs,
 		compression='blosc')
 
+	genome_fasta.close()
+	aux_genome_fasta.close()
 
 if __name__ == '__main__':
     args=fetch_footprinting_args()

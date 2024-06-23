@@ -44,10 +44,14 @@ def generate_shap_dict(seqs, scores):
         # if there is an aux_genome
         # Take just the first 4 columns - the A C G T onehot
         # In other words, just plot the normal motifs, ignoring the conservation columns.
-        # This throws away information... instead should figure out a way to plot the conservation score.
-        raw = raw[:, :, 0:4]
-        shap = shap[:, :, 0:4]
-        projected_shap = projected_shap[:, :, 0:4]
+        # Note, axes 1 and 2 were just transposed above, so axis 1 is now the onehot_seq_width
+        raw = raw[:, 0:4, :]
+        shap = shap[:, 0:4, :]
+        projected_shap = projected_shap[:, 0:4, :]
+        #raw = raw[:, 4:8, :] # REVERSE the genome and aux_genome
+        #shap = shap[:, 4:8, :] # REVERSE the genome and aux_genome
+        #projected_shap = projected_shap[:, 4:8, :] # REVERSE the genome and aux_genome
+        # This throws away information... instead should probably figure out a way to plot the conservation score.
 
     # construct a dictionary for the raw shap scores and the projected shap scores
     # MODISCO workflow expects one hot sequences with shape (None,4,inputlen)

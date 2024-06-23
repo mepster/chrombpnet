@@ -80,7 +80,6 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
     train_nonpeaks_cts=None
     train_nonpeaks_coords=None
 
-    import pickle
     if bed_regions is not None:
         train_peaks_seqs, train_peaks_cts, train_peaks_coords = get_seq_cts_coords(bed_regions,
                                               genome,
@@ -88,19 +87,17 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
                                               inputlen+2*max_jitter,
                                               outputlen+2*max_jitter,
                                               peaks_bool=1)
-        print(f"got train_peaks_seqs from {genome_fasta}")
+        print(f"got peaks_seqs from {genome_fasta}")
 
         if aux_genome_fasta:
+            # concatenate the DNA seqs with the conservation seqs
             train_peaks_aux_seqs = get_seq(bed_regions, aux_genome, inputlen+2*max_jitter)
-            print(f"got train_peaks_aux_seqs from {aux_genome_fasta}")
+            print(f"got peaks_aux_seqs from {aux_genome_fasta}")
             print(train_peaks_seqs.shape, train_peaks_aux_seqs.shape)
 
-            # with open("train_peaks_seqs.pkl", "wb") as file:
-            #     pickle.dump(train_peaks_seqs, file, protocol=pickle.HIGHEST_PROTOCOL)
-            # with open("train_peaks_aux_seqs.pkl", "wb") as file:
-            #     pickle.dump(train_peaks_aux_seqs, file, protocol=pickle.HIGHEST_PROTOCOL)
             train_peaks_seqs = np.concatenate((train_peaks_seqs, train_peaks_aux_seqs), axis=2)
             print(train_peaks_seqs.shape)
+            assert train_peaks_seqs.shape[2] == 8
 
     if nonpeak_regions is not None:
         train_nonpeaks_seqs, train_nonpeaks_cts, train_nonpeaks_coords = get_seq_cts_coords(nonpeak_regions,
@@ -109,17 +106,12 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
                                               inputlen,
                                               outputlen,
                                               peaks_bool=0)
-        print(f"got train_nonpeaks_seqs from {genome_fasta}")
+        print(f"got nonpeaks_seqs from {genome_fasta}")
 
         if aux_genome_fasta:
-            train_nonpeaks_aux_seqs = get_seq(nonpeak_regions, aux_genome, inputlen+2*max_jitter)
-            print(f"got train_nonpeaks_aux_seqs from {aux_genome_fasta}")
+            train_nonpeaks_aux_seqs = get_seq(nonpeak_regions, aux_genome, inputlen)
+            print(f"got nonpeaks_aux_seqs from {aux_genome_fasta}")
             print(train_nonpeaks_seqs.shape, train_nonpeaks_aux_seqs.shape)
-
-            # with open("train_nonpeaks_seqs.pkl", "wb") as file:
-            #     pickle.dump(train_nonpeaks_seqs, file, protocol=pickle.HIGHEST_PROTOCOL)
-            # with open("train_nonpeaks_aux_seqs.pkl", "wb") as file:
-            #     pickle.dump(train_nonpeaks_aux_seqs, file, protocol=pickle.HIGHEST_PROTOCOL)
 
             train_nonpeaks_seqs = np.concatenate((train_nonpeaks_seqs, train_nonpeaks_aux_seqs), axis=2)
             print(train_nonpeaks_seqs.shape)

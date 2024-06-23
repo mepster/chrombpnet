@@ -89,7 +89,7 @@ def bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len, onehot_seq_wi
     return model
 
 
-def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width):
+def getModelGivenModelOptionsAndWeightInits(args, model_params):
     
     assert("bias_model_path" in model_params.keys()) # bias model path not specfied for model
     filters=int(model_params['filters'])
@@ -99,6 +99,11 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width
     sequence_len=int(model_params['inputlen'])
     out_pred_len=int(model_params['outputlen'])
 
+    # if there is an aux_genome file, the seqs are twice as wide
+    if args.aux_genome:
+        onehot_seq_width = 8
+    else:
+        onehot_seq_width = 4
 
     bias_model = load_pretrained_bias(bias_model_path)
     bpnet_model_wo_bias = bpnet_model(filters, n_dil_layers, sequence_len, out_pred_len, onehot_seq_width)

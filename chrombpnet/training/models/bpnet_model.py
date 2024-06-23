@@ -10,7 +10,7 @@ import os
 
 os.environ['PYTHONHASHSEED'] = '0'
 
-def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width):
+def getModelGivenModelOptionsAndWeightInits(args, model_params):
     #default params (can be overwritten by providing model_params file as input to the training function)
     conv1_kernel_size=21
     profile_kernel_size=75
@@ -28,7 +28,13 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params, onehot_seq_width
     print("conv1_kernel_size:"+str(conv1_kernel_size))
     print("profile_kernel_size:"+str(profile_kernel_size))
     print("counts_loss_weight:"+str(counts_loss_weight))
-    
+
+    # if there is an aux_genome file, the seqs are twice as wide
+    if args.aux_genome:
+        onehot_seq_width = 8
+    else:
+        onehot_seq_width = 4
+
     #read in arguments
     seed=args.seed
     np.random.seed(seed)    
