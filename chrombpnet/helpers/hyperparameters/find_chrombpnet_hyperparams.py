@@ -51,7 +51,7 @@ def adjust_bias_model_logcounts(bias_model, seqs, cts, batch_size=64):
 
     print("seqs.shape", seqs.shape)
     print("seqs.dtype", seqs.dtype)
-    batch_size = 16  # HACK
+    #batch_size = 16  # HACK
     print("batch_size", batch_size)
 
     print("Predicting within adjust counts")
@@ -161,8 +161,9 @@ def main(args):
     # adjust bias model for training  - using train and validation set
     # the bias model might be trained on a difference read depth compared to the given data - so this step scales the bias model to account for that
 
-    nonpeak_seqs = nonpeak_seqs[::2] # HACK
-    nonpeak_cnts = nonpeak_cnts[::2] # HACK
+    print("throwing out half the nonpeaks for find_chrombpnet_hyperparams.adjust_bias_model_logcounts() to use less memory")
+    nonpeak_seqs = nonpeak_seqs[::2] # HACK take every other one to use less memory
+    nonpeak_cnts = nonpeak_cnts[::2] # HACK take every other one to use less memory
 
     bias_model = param_utils.load_model_wrapper(args.bias_model_path)
     bias_model_scaled = adjust_bias_model_logcounts(bias_model, nonpeak_seqs[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)], nonpeak_cnts[(nonpeak_cnts< upper_thresh) & (nonpeak_cnts>lower_thresh)], batch_size=args.batch_size)
