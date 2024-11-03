@@ -7,6 +7,7 @@ from chrombpnet.data import print_meme_motif_file
 from chrombpnet.helpers.misc import run_parallel_cmds2
 from chrombpnet.helpers.misc import get_gpu_scope
 import numpy as np
+from chrombpnet.helpers.log_events import EventLog
 
 def chrombpnet_train_pipeline(args):
 
@@ -14,8 +15,12 @@ def chrombpnet_train_pipeline(args):
 		fpx = args.file_prefix+"_"
 	else:
 		fpx = ""
+
+	eventlog = EventLog(filename=args.file_prefix+"_events.log")
+	eventlog.write_event(event_name="start")
 		
 	# Shift bam and convert to bigwig
+	eventlog.write_event(event_name="reads_to_bigwig")
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
 	if args.bigwig:
 		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
@@ -30,6 +35,7 @@ def chrombpnet_train_pipeline(args):
 		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	
 	# QC bigwig
+	eventlog.write_event(event_name="build_pwm_from_bigwig")
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
@@ -39,6 +45,7 @@ def chrombpnet_train_pipeline(args):
 	build_pwm_from_bigwig.main(args)
 	
 	# make predictions with input bias model in peaks
+	eventlog.write_event(event_name="bias_predict")
 	import chrombpnet.training.predict as predict
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"evaluation/bias")
@@ -53,6 +60,7 @@ def chrombpnet_train_pipeline(args):
 	assert(bias_metrics["counts_metrics"]["peaks"]["pearsonr"] > -0.5) # bias model has negative correlation in peaks - AT rich bias model. Increase bias threshold and retrain bias model. Or use a different bias model with higher bias threshold. 
 
 	# fetch hyperparameters for training
+	eventlog.write_event(event_name="find_chrombpnet_hyperparams")
 	import chrombpnet.helpers.hyperparameters.find_chrombpnet_hyperparams as find_chrombpnet_hyperparams
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args.output_dir,"auxiliary/{}".format(fpx))
@@ -69,6 +77,7 @@ def chrombpnet_train_pipeline(args):
 		f.write(params)
 		
 	# get model architecture path and train chromBPNet model
+	eventlog.write_event(event_name="train")
 	import chrombpnet.training.models.chrombpnet_with_bias_model as chrombpnet_with_bias_model
 	import chrombpnet.training.train as train
 	args_copy = copy.deepcopy(args)
@@ -97,6 +106,7 @@ def chrombpnet_train_pipeline(args):
 		return
 		
 	# make predictions with trained chrombpnet model
+	eventlog.write_event(event_name="predict")
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args.output_dir,"evaluation/{}chrombpnet".format(fpx))
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}chrombpnet.h5".format(fpx))
@@ -105,6 +115,7 @@ def chrombpnet_train_pipeline(args):
 		predict.main(args_copy)
 	
 	# marginal footprinting with model
+	eventlog.write_event(event_name="marginal_fingerprinting")
 	import chrombpnet.evaluation.marginal_footprints.marginal_footprinting as marginal_footprinting
 	if args.data_type == "ATAC":
 		bias_motifs = [["tn5_1","GCACAGTACAGAGCTG"],["tn5_2","GTGCACAGTTCTAGAGTGTGCAG"],["tn5_3","CCTCTACACTGTGCAGAA"],["tn5_4","GCACAGTTCTAGACTGTGCAG"],["tn5_5","CTGCACAGTGTAGAGTTGTGC"]]
@@ -129,6 +140,7 @@ def chrombpnet_train_pipeline(args):
 	os.rename(os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias_footprints.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/{}chrombpnet_nobias_footprints.h5".format(fpx)))
 
 	# get contributions scores with model
+	eventlog.write_event(event_name="interpret")
 	args_copy = copy.deepcopy(args)
 	import chrombpnet.evaluation.interpret.interpret as interpret
 	peaks = pd.read_csv(os.path.join(args.peaks),sep="\t",header=None)
@@ -153,7 +165,7 @@ def chrombpnet_train_pipeline(args):
 	meme_file=get_default_data_path(DefaultDataFile.motifs_meme)
 	
 	# modisco-lite pipeline
-	
+	eventlog.write_event(event_name="modisco")
 	modisco_command = "modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}chrombpnet_nobias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)))
 	os.system(modisco_command)
 	modisco_command = "modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file)
@@ -163,6 +175,7 @@ def chrombpnet_train_pipeline(args):
 	#modisco_command = "modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file)
 	#os.system(modisco_command)
 
+	eventlog.write_event(event_name="html")
 	import chrombpnet.evaluation.modisco.convert_html_to_pdf as convert_html_to_pdf
 	#convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_counts/motifs.html"),os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias_counts.pdf".format(fpx)))
 	convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_profile/motifs.html"),os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias_profile.pdf".format(fpx)))
@@ -173,6 +186,8 @@ def chrombpnet_train_pipeline(args):
 	args_copy.command = args.cmd
 	make_html.main(args_copy)
 	
+	eventlog.write_event(event_name="end")
+
 def chrombpnet_qc(args):
 
 	if args.file_prefix:
@@ -278,7 +293,11 @@ def train_bias_pipeline(args):
 	else:
 		fpx = ""
 
+	eventlog = EventLog(filename=args.file_prefix+"_events.log")
+	eventlog.write_event(event_name="start")
+
 	# Shift bam and convert to bigwig
+	eventlog.write_event(event_name="reads_to_bigwig")
 	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
 	if args.bigwig:
 		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
@@ -293,6 +312,7 @@ def train_bias_pipeline(args):
 		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 
 	# QC bigwig
+	eventlog.write_event(event_name="build_pwm_from_bigwig")
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
@@ -303,6 +323,7 @@ def train_bias_pipeline(args):
 	
 
 	# fetch hyperparameters for training
+	eventlog.write_event(event_name="find_bias_hyperparams")
 	import chrombpnet.helpers.hyperparameters.find_bias_hyperparams as find_bias_hyperparams
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args.output_dir,"auxiliary/{}".format(fpx))
@@ -313,6 +334,7 @@ def train_bias_pipeline(args):
 	os.rename(os.path.join(args.output_dir,"auxiliary/{}bias_data_params.tsv".format(fpx)),os.path.join(args.output_dir,"logs/{}bias_data_params.tsv".format(fpx)))
 		
 	# get model architecture path and train chromBPNet model
+	eventlog.write_event(event_name="train")
 	import chrombpnet.training.models.bpnet_model as bpnet_model
 	import chrombpnet.training.train as train
 	args_copy = copy.deepcopy(args)
@@ -341,6 +363,7 @@ def train_bias_pipeline(args):
 		return
 		
 	# make predictions with trained bias model 
+	eventlog.write_event(event_name="predict")
 	import chrombpnet.training.predict as predict
 	args_copy = copy.deepcopy(args)
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"evaluation/{}bias".format(fpx))
@@ -349,6 +372,7 @@ def train_bias_pipeline(args):
 		predict.main(args_copy)
 
 	# get contributions scores with model
+	eventlog.write_event(event_name="interpret")
 	import chrombpnet.evaluation.interpret.interpret as interpret
 	peaks = pd.read_csv(os.path.join(args.peaks),sep="\t",header=None)
 	if peaks.shape[0] > 30000:
@@ -364,24 +388,37 @@ def train_bias_pipeline(args):
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}bias.h5".format(fpx))
 	args_copy.output_prefix = os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias".format(fpx))
 	args_copy.debug_chr = None
-	with get_gpu_scope(args): # shap doesn't use multiGPU, but in case it does in the future
-		interpret.main(args_copy)
+	#with get_gpu_scope(args): # shap doesn't use multiGPU
+	interpret.main(args_copy)
 	
 	import chrombpnet
 	chrombpnet_src_dir = os.path.dirname(chrombpnet.__file__)
 	meme_file=get_default_data_path(DefaultDataFile.motifs_meme)
 
 	# modisco-lite pipeline
-	cmds = []
-	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx))))
-	cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx))))
-	run_parallel_cmds2(cmds)
+	if 0:
+		cmds = []
+		eventlog.write_event(event_name="modisco_motifs")
+		cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx))))
+		cmds.append("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx))))
+		run_parallel_cmds2(cmds)
 
-	cmds = []
-	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file))
-	cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file))
-	run_parallel_cmds2(cmds)
+		cmds = []
+		eventlog.write_event(event_name="modisco_report")
+		cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file))
+		cmds.append("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file))
+		run_parallel_cmds2(cmds)
+	else:
+		eventlog.write_event(event_name="modisco_motifs")
+		os.system("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx))))
+		os.system("modisco motifs -i {} -n 50000 -o {} -w 500".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}bias.counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx))))
+
+		eventlog.write_event(event_name="modisco_report")
+		os.system("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_profile_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_profile/"),meme_file))
+		os.system("modisco report -i {} -o {} -m {}".format(os.path.join(args.output_dir,"auxiliary/interpret_subsample/{}modisco_results_counts_scores.h5".format(fpx)),os.path.join(args.output_dir,"evaluation/modisco_counts/"),meme_file))
+
 	
+	eventlog.write_event(event_name="html")
 	import chrombpnet.evaluation.modisco.convert_html_to_pdf as convert_html_to_pdf
 	convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_counts/motifs.html"),os.path.join(args.output_dir,"evaluation/{}bias_counts.pdf".format(fpx)))
 	convert_html_to_pdf.main(os.path.join(args.output_dir,"evaluation/modisco_profile/motifs.html"),os.path.join(args.output_dir,"evaluation/{}bias_profile.pdf".format(fpx)))
@@ -391,6 +428,8 @@ def train_bias_pipeline(args):
 	args_copy.input_dir = args_copy.output_dir
 	args_copy.command = args_copy.cmd_bias
 	make_html_bias.main(args_copy)
+
+	eventlog.write_event(event_name="end")
 
 def bias_model_qc(args):
 
