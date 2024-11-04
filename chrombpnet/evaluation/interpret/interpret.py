@@ -131,6 +131,7 @@ def main(args):
 
     if 0:
         # run "profile" and "counts" in parallel
+        print("running interpret on profile and counts in parallel")
         from multiprocessing import Process
         os.environ["PYTHONUNBUFFERED"] = "1"
         procs=[]
