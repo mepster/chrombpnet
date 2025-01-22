@@ -49,6 +49,16 @@ def adjust_bias_model_logcounts(bias_model, seqs, cts):
     assert(bias_model.layers[-1].output_shape==(None,1))
     assert(isinstance(bias_model.layers[-1], keras.layers.Dense))
 
+    def sample_with_mask(seqs, cts, max_rows):
+        prob = min(1.0, max_rows / seqs.shape[0])
+        mask = np.random.rand(seqs.shape[0]) < prob
+        return seqs[mask], cts[mask]
+
+    # Sample a max number of rows of 500000, to avoid GPU OOM error
+    print("before adjust_bias_model_logcounts seqs shape:", seqs.shape, "cts shape:", cts.shape)
+    # seqs, cts = sample_with_mask(seqs, cts, 400000)
+    # print("after adjust_bias_model_logcounts seqs shape:", seqs.shape, "cts shape:", cts.shape)
+
     print("Predicting within adjust counts")
     _, pred_logcts = bias_model.predict(seqs, verbose=True)
     delta = np.mean(np.log(1+cts) - pred_logcts.ravel())

@@ -94,6 +94,14 @@ def main(args):
 
 	regions_df = pd.read_csv(args.regions, sep='\t', names=NARROWPEAK_SCHEMA)
 	regions_subsample = regions_df[(regions_df["chr"].isin(chroms_to_keep))]
+
+	# Subsample to a fixed number of regions
+	print(f"len(regions_subsample) before sampling: {len(regions_subsample)}")
+	# fixed_number_of_regions = 30000
+	# if len(regions_subsample) > fixed_number_of_regions:
+	# 	regions_subsample = regions_subsample.sample(n=fixed_number_of_regions, random_state=42)
+	# print(f"len(regions_subsample) after sampling: {len(regions_subsample)}")
+
 	regions_seqs = get_seq(regions_subsample, genome_fasta, inputlen)
 
 	footprints_at_motifs = {}
