@@ -125,6 +125,10 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
 
     profile_out = Add(name="logits_profile_predictions")([output_wo_bias[0],bias_output[0]])
     concat_counts = Concatenate(axis=-1)([output_wo_bias[1], bias_output[1]])
+    # two lambas might cause this error "UserWarning:  is not loaded, but a Lambda layer uses it. It may cause errors.", see https://github.com/keras-team/keras/issues/5298
+    # Maybe can fix with this?
+    #count_out = Lambda(tf.math.reduce_logsumexp, arguments=({'axis':-1, 'keepdims':True}),
+    #                    name="logcount_predictions")(concat_counts)
     count_out = Lambda(lambda x: tf.math.reduce_logsumexp(x, axis=-1, keepdims=True),
                         name="logcount_predictions")(concat_counts)
 
