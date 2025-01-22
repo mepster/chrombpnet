@@ -371,6 +371,11 @@ def train_bias_pipeline(args):
 	with get_gpu_scope(args):
 		predict.main(args_copy)
 
+	if args.cmd_bias == "train_and_predict":
+		# don't do the expensive interpretation and modisco
+		print("Finished training and prediction! Exiting!")
+		return
+
 	# get contributions scores with model
 	eventlog.write_event(event_name="interpret")
 	import chrombpnet.evaluation.interpret.interpret as interpret

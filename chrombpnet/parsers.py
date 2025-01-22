@@ -21,9 +21,10 @@ def read_parser():
         # bias parsers
         
         bias_parser_full = subparsers.add_parser("bias", help="Tools to train, quality check and test bias model")
-        bias_parser_sub = bias_parser_full.add_subparsers(help="Must be eithier 'pipeline'  'train', 'qc'.", required=True, dest='cmd_bias')
+        bias_parser_sub = bias_parser_full.add_subparsers(help="Must be eithier 'pipeline'  'train', 'train_and_predict' 'qc'.", required=True, dest='cmd_bias')
         bias_parser = bias_parser_sub.add_parser("pipeline", help="End-to-end pipline with train, quality check and test for bias model")
         bias_parser_train = bias_parser_sub.add_parser("train", help="Train bias model")
+        bias_parser_train_and_predict = bias_parser_sub.add_parser("train_and_predict", help="Train bias model, and predict (for statistics)")
         bias_parser_qc = bias_parser_sub.add_parser("qc", help="Do quality checks and get test metrics for the bias model")
         
         # helper parsers
@@ -182,6 +183,20 @@ def read_parser():
         optional_biast_parser.add_argument("-dil", "--n-dilation-layers", type=int, default=4, help="Number of dilation layers to use in chrombpnet model")
         optional_biast_parser.add_argument("-j", "--max-jitter", type=int, default=0, help="Maximum jitter applied on either side of region (default 500 for chrombpnet model)")
         optional_biast_parser.add_argument("-bs", "--batch-size", type=int, default=64, help="batch size to use for model training")
+ 
+       # bias model train_and_predict arguments
+
+        bias_parser_train_and_predict._action_groups.pop()
+        required_biastp_parser = bias_parser_train_and_predict.add_argument_group('required arguments')
+        optional_biastp_parser = bias_parser_train_and_predict.add_argument_group('optional arguments')
+        required_biastp_parser,optional_biastp_parser = general_training_args(required_biastp_parser, optional_biastp_parser)
+        
+        required_biastp_parser.add_argument("-b", "--bias-threshold-factor", type=float, required=True, help="A threshold is applied on maximum count of non-peak region for training bias model, which is set as this threshold x min(count over peak regions). Recommended start value 0.5 for ATAC and 0.8 for DNas")
+
+        optional_biastp_parser.add_argument("-fil", "--filters", type=int, default=128, help="Number of filters to use in chrombpnet mode")
+        optional_biastp_parser.add_argument("-dil", "--n-dilation-layers", type=int, default=4, help="Number of dilation layers to use in chrombpnet model")
+        optional_biastp_parser.add_argument("-j", "--max-jitter", type=int, default=0, help="Maximum jitter applied on either side of region (default 500 for chrombpnet model)")
+        optional_biastp_parser.add_argument("-bs", "--batch-size", type=int, default=64, help="batch size to use for model training")
  
        # bias model qc arguments
 

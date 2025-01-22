@@ -29,7 +29,7 @@ def main():
 		pipelines.chrombpnet_qc(args)
 		
 	elif args.cmd == "bias":
-		if args.cmd_bias == "pipeline" or args.cmd_bias == "train":
+		if args.cmd_bias == "pipeline" or args.cmd_bias == "train" or args.cmd_bias == "train_and_predict":
 			os.makedirs(os.path.join(args.output_dir,"logs"), exist_ok=False)
 			os.makedirs(os.path.join(args.output_dir,"auxiliary"), exist_ok=False)
 			os.makedirs(os.path.join(args.output_dir,"models"), exist_ok=False)
