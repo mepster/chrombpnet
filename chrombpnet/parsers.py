@@ -50,6 +50,7 @@ def read_parser():
        		group.add_argument('-ibam', '--input-bam-file', type=str, help="Input BAM file")
         	group.add_argument('-ifrag', '--input-fragment-file', type=str, help="Input fragment file")
         	group.add_argument('-itag', '--input-tagalign-file', type=str, help="Input tagAlign file")
+        	group.add_argument('-bw', '--bigwig', type=str, help="Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.")
         	required_train.add_argument('-o', '--output-dir', type=str, required=True, help="Output dir (path/to/output/dir)")
         	required_train.add_argument('-d', '--data-type', required=True, type=str, choices=['ATAC', 'DNASE'], help="assay type")
         	required_train.add_argument("-p", "--peaks", type=str, required=True, help="10 column bed file of peaks. Sequences and labels will be extracted centered at start (2nd col) + summit (10th col).")
@@ -75,7 +76,7 @@ def read_parser():
         	optional_train.add_argument('--bsort', required=False, default=False, action='store_true', help="In prpeprocess, by deafult we sort bam using unix sort but sometimes LC collate can cause issues, so this can be set to use betools sort which works well but is memory intensive..")
         	optional_train.add_argument('--tmpdir', required=False, default=None, type=str, help="temp dir for unix sort")
         	optional_train.add_argument('--no-st', required=False, default=False, action='store_true', help="Dont do streaming  and filtering in preprocessing (short chromosome contrigs not in reference fasta are not removed)")
-
+        	optional_train.add_argument('--multiGPU', default=False, action='store_true')
         	return required_train, optional_train
 
         # Generate non-peak regions from peak-regions

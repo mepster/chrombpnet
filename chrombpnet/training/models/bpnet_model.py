@@ -74,14 +74,15 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     cropsize = int(int_shape(prof_out_precrop)[1]/2)-int(out_pred_len/2)
     assert cropsize>=0
     assert (int_shape(prof_out_precrop)[1] % 2 == 0) # Necessary for symmetric cropping
+
     prof = Cropping1D(cropsize,
                 name='logits_profile_predictions_preflatten')(prof_out_precrop)
+
+    profile_out = Flatten(name="logits_profile_predictions")(prof)
 
     # Branch 2. Counts prediction
     # Step 2.1 - Global average pooling along the "length", the result
     #            size is same as "filters" parameter to the BPNet function
-
-    profile_out = Flatten(name="logits_profile_predictions")(prof)
 
     gap_combined_conv = GlobalAvgPool1D(name='gap')(x) # acronym - gapcc
 
@@ -89,7 +90,7 @@ def getModelGivenModelOptionsAndWeightInits(args, model_params):
     count_out = Dense(num_tasks, name="logcount_predictions")(gap_combined_conv)
 
     # instantiate keras Model with inputs and outputs
-    model=Model(inputs=[inp],outputs=[profile_out, count_out])
+    model=Model(inputs=[inp],outputs=[profile_out, count_out], name="bias_model")
 
     model.compile(optimizer=Adam(learning_rate=args.learning_rate),
                     loss=[multinomial_nll,'mse'],

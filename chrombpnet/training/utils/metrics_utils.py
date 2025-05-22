@@ -151,6 +151,7 @@ def mnll_min_max_bounds(profile):
     profile = profile.astype(np.float64)
     
     # profile as probabilities
+    # uh oh, divide-by-zero if profile is all zeros.
     profile_prob = profile / np.sum(profile)
     
     # the scipy.stats.multinomial function is very sensitive to 
@@ -193,6 +194,7 @@ def jsd_min_max_bounds(profile):
     uniform_profile = np.ones(len(profile)) * (1.0 / len(profile))
 
     # profile as probabilities
+    # uh oh, divide-by-zero if profile is all zeros.
     profile_prob = profile / np.sum(profile)
 
     # jsd of profile with uniform profile

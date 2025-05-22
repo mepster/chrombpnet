@@ -4,6 +4,8 @@ import json
 import copy
 from chrombpnet.data import DefaultDataFile, get_default_data_path
 from chrombpnet.data import print_meme_motif_file
+from chrombpnet.helpers.misc import run_parallel_cmds2
+from chrombpnet.helpers.misc import get_gpu_scope
 import numpy as np
 
 def chrombpnet_train_pipeline(args):
@@ -14,15 +16,21 @@ def chrombpnet_train_pipeline(args):
 		fpx = ""
 		
 	# Shift bam and convert to bigwig
-	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
-	args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
-	args.plus_shift = None
-	args.minus_shift = None
-	reads_to_bigwig.main(args)
+	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
+	if args.bigwig:
+		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
+		print(f"Using pregenerated bigwig file {args.bigwig}")
+	else:
+		print("Generating new bigwig file")
+		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
+		args.plus_shift = None
+		args.minus_shift = None
+		reads_to_bigwig.main(args)
+		# use the newly generated bigwig file
+		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	
 	# QC bigwig
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
-	args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
 	assert(len(folds["valid"]) > 0) # validation list of chromosomes is empty
@@ -43,7 +51,8 @@ def chrombpnet_train_pipeline(args):
 	args_copy.peaks = os.path.join(args.output_dir,"auxiliary/{}filtered.peaks.bed".format(fpx))
 	args_copy.model_h5 = args.bias_model_path
 	args_copy.nonpeaks = "None"
-	predict.main(args_copy)
+	with get_gpu_scope(args):
+		predict.main(args_copy)
 	
 	# QC bias model performance in peaks
 	bias_metrics = json.load(open(os.path.join(args_copy.output_dir,"evaluation/bias_metrics.json")))
@@ -70,7 +79,8 @@ def chrombpnet_train_pipeline(args):
 	args_copy.nonpeaks = os.path.join(args.output_dir,"auxiliary/{}filtered.nonpeaks.bed".format(fpx))
 	args_copy.output_prefix = os.path.join(args.output_dir,"models/{}chrombpnet".format(fpx))
 	args_copy.params = os.path.join(args.output_dir,"logs/{}chrombpnet_model_params.tsv".format(fpx))
-	train.main(args_copy)
+	with get_gpu_scope(args):
+		train.main(args_copy)
 	
 	# separating models from logs
 	os.rename(os.path.join(args.output_dir,"models/{}chrombpnet.log".format(fpx)),os.path.join(args.output_dir,"logs/{}chrombpnet.log".format(fpx)))
@@ -92,8 +102,8 @@ def chrombpnet_train_pipeline(args):
 	args_copy.output_prefix = os.path.join(args.output_dir,"evaluation/{}chrombpnet".format(fpx))
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}chrombpnet.h5".format(fpx))
 	args_copy.nonpeaks = "None"
-	args_copy.peaks = os.path.join(args.output_dir,"auxiliary/{}filtered.peaks.bed".format(fpx))
-	predict.main(args_copy)
+	with get_gpu_scope(args):
+		predict.main(args_copy)
 	
 	# marginal footprinting with model
 	import chrombpnet.evaluation.marginal_footprints.marginal_footprinting as marginal_footprinting
@@ -113,7 +123,8 @@ def chrombpnet_train_pipeline(args):
 	args_copy.output_prefix = os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias".format(fpx))
 	args_copy.motifs_to_pwm = os.path.join(args_copy.output_dir,"auxiliary/motif_to_pwm.tsv")
 	args_copy.ylim = None
-	marginal_footprinting.main(args_copy)
+	with get_gpu_scope(args):
+		marginal_footprinting.main(args_copy)
 	
 	# separating models from logs
 	os.rename(os.path.join(args.output_dir,"evaluation/{}chrombpnet_nobias_footprints.h5".format(fpx)),os.path.join(args.output_dir,"auxiliary/{}chrombpnet_nobias_footprints.h5".format(fpx)))
@@ -271,15 +282,21 @@ def train_bias_pipeline(args):
 		fpx = ""
 		
 	# Shift bam and convert to bigwig
-	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
-	args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
-	args.plus_shift = None
-	args.minus_shift = None
-	reads_to_bigwig.main(args)
-	
+	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig
+	if args.bigwig:
+		# Use a pregenerated bigwig file instead of generating one from a bam/fragment/tagalign file.
+		print(f"Using pregenerated bigwig file {args.bigwig}")
+	else:
+		print("Generating new bigwig file")
+		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
+		args.plus_shift = None
+		args.minus_shift = None
+		reads_to_bigwig.main(args)
+		# use the newly generated bigwig file
+		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
+
 	# QC bigwig
 	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
-	args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
 	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
 	folds = json.load(open(args.chr_fold_path))
 	assert(len(folds["valid"]) > 0) # validation list of chromosomes is empty
@@ -287,7 +304,6 @@ def train_bias_pipeline(args):
 	args.pwm_width=24
 	build_pwm_from_bigwig.main(args)
 	
-
 	# fetch hyperparameters for training
 	import chrombpnet.helpers.hyperparameters.find_bias_hyperparams as find_bias_hyperparams
 	args_copy = copy.deepcopy(args)
@@ -308,7 +324,8 @@ def train_bias_pipeline(args):
 	args_copy.nonpeaks = os.path.join(args_copy.output_dir,"auxiliary/{}filtered.bias_nonpeaks.bed".format(fpx))
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"models/{}bias".format(fpx))
 	args_copy.params = os.path.join(args_copy.output_dir,"logs/{}bias_model_params.tsv".format(fpx))
-	train.main(args_copy)
+	with get_gpu_scope(args):
+		train.main(args_copy)
 	
 	# separating models from logs
 	os.rename(os.path.join(args.output_dir,"models/{}bias.args.json".format(fpx)),os.path.join(args.output_dir,"logs/{}bias.args.json".format(fpx)))
@@ -332,7 +349,8 @@ def train_bias_pipeline(args):
 	args_copy.peaks = os.path.join(args_copy.output_dir,"auxiliary/{}filtered.bias_peaks.bed".format(fpx))
 	args_copy.output_prefix = os.path.join(args_copy.output_dir,"evaluation/{}bias".format(fpx))
 	args_copy.model_h5 = os.path.join(args.output_dir,"models/{}bias.h5".format(fpx))
-	predict.main(args_copy)
+	with get_gpu_scope(args):
+		predict.main(args_copy)
 
 	# get contributions scores with model
 	import chrombpnet.evaluation.interpret.interpret as interpret

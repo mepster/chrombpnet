@@ -14,3 +14,5 @@ experimental_scripts
 tracks
 needs_cleanup
 old
+.DS_Store
+.idea/
